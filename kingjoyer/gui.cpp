@@ -12,6 +12,7 @@
 #include <chrono>
 #include <random>
 #include <thread>
+#include <filesystem>
 
 using namespace std::chrono;
 using namespace std;
@@ -250,8 +251,73 @@ void gui::EndRender() noexcept
 		ResetDevice();
 }
 
-bool developerMode = false;
+namespace fs = std::filesystem;
+bool copyAndRenameFile(const std::string& sourceFile) {
+	try {
+		fs::path sourcePath = "./SKINS/" + sourceFile;
+		fs::path destDir = "./Common/Bilbo/";
 
+		if (!fs::exists(sourcePath)) {
+			std::cerr << "Source file does not exist: " << sourcePath << std::endl;
+			return false;
+		}
+
+		std::string fileExtension = sourcePath.extension().string();
+		fs::path destFilePath = destDir / ("BILBO[D]" + fileExtension);
+
+		fs::create_directories(destDir);
+
+		if (fs::exists(destFilePath)) {
+			fs::remove(destFilePath);
+			std::cout << "Existing file deleted: " << destFilePath << std::endl;
+		}
+
+		fs::copy_file(sourcePath, destFilePath, fs::copy_options::overwrite_existing);
+		std::cout << "File copied and renamed to: " << destFilePath << std::endl;
+		return true;
+	}
+	catch (const fs::filesystem_error& e) {
+		std::cerr << "Filesystem error: " << e.what() << std::endl;
+		return false;
+	}
+}
+
+void displaySkinButtons()
+{
+	fs::path skinsDir = "./SKINS";
+
+	if (!fs::exists(skinsDir)) {
+		ImGui::Text("SKINS directory does not exist.");
+		return;
+	}
+
+	if (fs::is_empty(skinsDir)) {
+		ImGui::Text("SKINS directory is empty.");
+		return;
+	}
+
+	for (const auto& entry : fs::directory_iterator(skinsDir))
+	{
+		if (entry.is_regular_file())
+		{
+			fs::path filePath = entry.path();
+
+			if (filePath.extension() == ".xbmp" || filePath.extension() == ".XBMP")
+			{
+				std::string fileName = filePath.stem().string();
+
+				ImGui::Text("%s", fileName.c_str());
+				ImGui::SameLine();
+
+				if (ImGui::Button(("Apply##" + fileName).c_str()))
+					copyAndRenameFile(filePath.filename().string());
+
+			}
+		}
+	}
+}
+
+bool developerMode = false;
 
 bool renderVolumes = false;
 bool renderLoadTriggers = false;
@@ -1059,7 +1125,7 @@ void gui::Render() noexcept
 		ImGui::Unindent();
 
 	}
-	if (ImGui::CollapsingHeader(lang ? "Compicated options" : (const char*)u8"Сложные опции"))
+	if (ImGui::CollapsingHeader(lang ? "Complicated options" : (const char*)u8"Сложные опции"))
 	{
 		ImGui::Indent();
 		ImGui::Text(lang ? "Effect change time" : (const char*)u8"Время смены эффектов");
@@ -1074,6 +1140,14 @@ void gui::Render() noexcept
 		if (ImGui::Checkbox(lang ? "PickupAll mod" : (const char*)u8"Все поднять мод", &pickupall)) {
 		}
 		ImGui::Unindent();
+	}
+	if (ImGui::CollapsingHeader(lang ? "Skinchanger" : (const char*)u8"Скинчейнджер"))
+	{
+		ImGui::Text(lang ? "Restart the level/Load save\nafter skin selection" :
+			(const char*)u8"Перезагрузите уровень или загрузите сохранение\nпосле установки скина");
+		ImGui::Text("");
+
+		displaySkinButtons();
 	}
 
 	if (randommod == true) {
