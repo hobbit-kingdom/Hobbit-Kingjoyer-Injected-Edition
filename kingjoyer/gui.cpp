@@ -2,6 +2,7 @@
 #include "byte_functions.h"
 #include "Randommod.h"
 #include "PickupAll.h"
+#include "functions.h"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
@@ -282,17 +283,17 @@ bool copyAndRenameFile(const std::string& sourceFile) {
 	}
 }
 
-void displaySkinButtons()
+void displaySkinButtons(bool lang)
 {
 	fs::path skinsDir = "./SKINS";
 
 	if (!fs::exists(skinsDir)) {
-		ImGui::Text("SKINS directory does not exist.");
+		ImGui::Text(lang ? "SKINS directory does not exist." : (const char*)u8"папка SKINS не найдена");
 		return;
 	}
 
 	if (fs::is_empty(skinsDir)) {
-		ImGui::Text("SKINS directory is empty.");
+		ImGui::Text(lang ? "SKINS directory is empty." : (const char*)u8"папка SKINS пуста.");
 		return;
 	}
 
@@ -309,7 +310,7 @@ void displaySkinButtons()
 				ImGui::Text("%s", fileName.c_str());
 				ImGui::SameLine();
 
-				if (ImGui::Button(("Apply##" + fileName).c_str()))
+				if (ImGui::Button((lang ? "Apply##" : (const char*)u8"Принять##" + fileName).c_str()))
 					copyAndRenameFile(filePath.filename().string());
 
 			}
@@ -322,20 +323,20 @@ bool developerMode = false;
 bool renderVolumes = false;
 bool renderLoadTriggers = false;
 bool renderTriggers = false;
-bool renderWater = false;
-bool renderWeb = false;
-bool renderRopes = false;
-bool renderLeaves = false;
-bool renderChests = false;
-bool renderLevers = false;
-bool renderBilbo = false;
+bool renderWater = true;
+bool renderWeb = true;
+bool renderRopes = true;
+bool renderLeaves = true;
+bool renderChests = true;
+bool renderLevers = true;
+bool renderBilbo = true;
 bool renderLights = false;
-bool renderEffects = false;
-bool renderSkybox = false;
-bool renderSavePedestal = false;
-bool renderPushBoxes = false;
-bool breakway = false;
-bool boulderRun = false;
+bool renderEffects = true;
+bool renderSkybox = true;
+bool renderSavePedestal = true;
+bool renderPushBoxes = true;
+bool breakway = true;
+bool boulderRun = true;
 bool polyCache = false;
 bool bilboPos = false;
 bool cutsceneInfo = false;
@@ -345,8 +346,8 @@ bool objInView = false;
 bool trianglesInView = false;
 bool randommod = false;
 bool pickupall = false;
-bool renderRigidInstances = false;
-bool renderPlaySurface = false;
+bool renderRigidInstances = true;
+bool renderPlaySurface = true;
 bool renderGeometry = false;
 
 
@@ -436,7 +437,6 @@ void gui::Render() noexcept
 		&isRunning,
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoCollapse
-
 	);
 
 	ImGui::Text("The Hobbit KingJoyer");
@@ -465,73 +465,72 @@ void gui::Render() noexcept
 		if (ImGui::BeginTable("split", 3))
 		{
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Volumes" : (const char*)u8"Волумы", &renderVolumes)) {
-				change_1Byte_hobbit((LPVOID)0x00777B04, 0x01, 0x00); //функция рендера волумов
+				functions::renderVolumes(renderVolumes);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "PolyCache" : (const char*)u8"Полигоны", &polyCache)) {
-				change_1Byte_hobbit((LPVOID)0x00778078, 0x01, 0x00); //функция рендера полигонов
+				functions::polyCache(polyCache);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Load Triggers" : (const char*)u8"Триггеры Загрузки", &renderLoadTriggers)) {
-				change_1Byte_hobbit((LPVOID)0x00777B18, 0x01, 0x00); //функция рендера загрузочных триггеров
+				functions::renderLoadTriggers(renderLoadTriggers);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Triggers" : (const char*)u8"Триггеры", &renderTriggers)) {
-				change_1Byte_hobbit((LPVOID)0x00777B1C, 0x01, 0x00); //функция рендера триггеров
+				functions::renderTriggers(renderTriggers);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Water" : (const char*)u8"Вода", &renderWater)) {
-				change_1Byte_hobbit((LPVOID)0x00777B10, 0x01, 0x00); //функция рендера воды
+				functions::renderWater(renderWater);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Web" : (const char*)u8"Паутина", &renderWeb)) {
-				change_1Byte_hobbit((LPVOID)0x00777B90, 0x01, 0x00); //функция рендера паутины
+				functions::renderWeb(renderWeb);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Ropes" : (const char*)u8"Веревка", &renderRopes)) {
-				change_1Byte_hobbit((LPVOID)0x00777B24, 0x01, 0x00); //функция рендера веревок
+				functions::renderRopes(renderRopes);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Leaves" : (const char*)u8"Листва", &renderLeaves)) {
-				change_1Byte_hobbit((LPVOID)0x00777B80, 0x01, 0x00); //функция рендер кластеров листвы деревьев
+				functions::renderLeaves(renderLeaves);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Chests" : (const char*)u8"Сундуки", &renderChests)) {
-				change_1Byte_hobbit((LPVOID)0x00777AF0, 0x01, 0x00); //функция рендер сундуков
+				functions::renderChests(renderChests);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Levers" : (const char*)u8"Рычаги", &renderLevers)) {
-				change_1Byte_hobbit((LPVOID)0x00777AEC, 0x01, 0x00); //функция рендер рычагов
+				functions::renderLevers(renderLevers);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Bilbo" : (const char*)u8"Бильбо", &renderBilbo)) {
-				change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x00); //функция рендер Бильбо
+				functions::renderBilbo(renderBilbo);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Lights" : (const char*)u8"Свет", &renderLights)) {
-				change_1Byte_hobbit((LPVOID)0x00777AA4, 0x01, 0x00); //функция рендер света
+				functions::renderLights(renderLights);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Effects" : (const char*)u8"Эффекты", &renderEffects)) {
-				change_1Byte_hobbit((LPVOID)0x00777B88, 0x01, 0x00); //функция рендер эффектов
+				functions::renderEffects(renderEffects);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Breakway" : (const char*)u8"Падающий путь", &breakway)) {
-				change_1Byte_hobbit((LPVOID)0x00777B0C, 0x01, 0x00); //функция рендера падающего пути
+				functions::breakway(breakway);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Falling boulders" : (const char*)u8"Падающие булыжники", &boulderRun)) {
-				change_1Byte_hobbit((LPVOID)0x00777AFC, 0x01, 0x00); //функция рендер болдер рана
+				functions::boulderRun(boulderRun);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Skybox" : (const char*)u8"Небо", &renderSkybox)) {
-				change_1Byte_hobbit((LPVOID)0x00777B5C, 0x01, 0x00); //функция рендера скайбокса
+				functions::renderSkybox(renderSkybox);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Save Pedestal" : (const char*)u8"Пьедестал сохранения", &renderSavePedestal)) {
-				change_1Byte_hobbit((LPVOID)0x00777AF8, 0x01, 0x00); //функция рендера сохранялок
+				functions::renderSavePedestal(renderSavePedestal);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Push boxes" : (const char*)u8"Двигающиеся коробки", &renderPushBoxes)) {
-				change_1Byte_hobbit((LPVOID)0x00777AF4, 0x01, 0x00); //функция рендера пушбоксов
+				functions::renderPushBoxes(renderPushBoxes);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Rigid Instances" : (const char*)u8"Объекты", &renderRigidInstances)) {
-				change_1Byte_hobbit((LPVOID)0x00777A8C, 0x01, 0x00); //функция рендера rigidInstances
+				functions::renderRigidInstances(renderRigidInstances);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Play surfaces" : (const char*)u8"Ландшафт", &renderPlaySurface)) {
-				change_1Byte_hobbit((LPVOID)0x00777A98, 0x01, 0x00); //функция рендера ландшафта
+				functions::renderPlaySurface(renderPlaySurface);
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Geometry" : (const char*)u8"Геометрия", &renderGeometry)) {
-				change_1Byte_hobbit((LPVOID)0x0075D2CC, 0x01, 0x00); //функция рендера геометрии
+				functions::renderGeometry(renderGeometry);
 			}
 			ImGui::EndTable();
 		}
 
 		ImGui::Unindent();
-
 	}
 
 	if (ImGui::CollapsingHeader(lang ? "Cheats" : (const char*)u8"Читы"))
@@ -1147,7 +1146,7 @@ void gui::Render() noexcept
 			(const char*)u8"Перезагрузите уровень или загрузите сохранение\nпосле установки скина");
 		ImGui::Text("");
 
-		displaySkinButtons();
+		displaySkinButtons(lang);
 	}
 
 	if (randommod == true) {

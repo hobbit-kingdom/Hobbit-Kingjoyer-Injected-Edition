@@ -96,6 +96,9 @@
     <ClInclude Include="kingjoyer\Randommod.h">
       <Filter>kingjoyer</Filter>
     </ClInclude>
+    <ClInclude Include="kingjoyer\functions.h">
+      <Filter>kingjoyer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -156,6 +159,9 @@
       <Filter>kingjoyer</Filter>
     </ClCompile>
     <ClCompile Include="kingjoyer\Randommod.cpp">
+      <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\functions.cpp">
       <Filter>kingjoyer</Filter>
     </ClCompile>
   </ItemGroup>

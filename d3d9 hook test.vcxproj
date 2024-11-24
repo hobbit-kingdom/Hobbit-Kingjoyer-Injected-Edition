@@ -153,6 +153,7 @@
     <ClInclude Include="includes.h" />
     <ClInclude Include="kiero.h" />
     <ClInclude Include="kingjoyer\byte_functions.h" />
+    <ClInclude Include="kingjoyer\functions.h" />
     <ClInclude Include="kingjoyer\gui.h" />
     <ClInclude Include="kingjoyer\HobbitMemoryAccess.h" />
     <ClInclude Include="kingjoyer\MemoryAccess.h" />
@@ -177,6 +178,7 @@
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="kiero.cpp" />
     <ClCompile Include="kingjoyer\byte_functions.cpp" />
+    <ClCompile Include="kingjoyer\functions.cpp" />
     <ClCompile Include="kingjoyer\gui.cpp" />
     <ClCompile Include="kingjoyer\HobbitMemoryAccess.cpp" />
     <ClCompile Include="kingjoyer\MemoryAccess.cpp" />
