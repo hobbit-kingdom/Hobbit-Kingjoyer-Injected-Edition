@@ -151,6 +151,8 @@
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="includes.h" />
+    <ClInclude Include="inireader\ini.h" />
+    <ClInclude Include="inireader\INIReader.h" />
     <ClInclude Include="kiero.h" />
     <ClInclude Include="kingjoyer\byte_functions.h" />
     <ClInclude Include="kingjoyer\functions.h" />
@@ -176,6 +178,8 @@
     <ClCompile Include="imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
+    <ClCompile Include="inireader\ini.c" />
+    <ClCompile Include="inireader\INIReader.cpp" />
     <ClCompile Include="kiero.cpp" />
     <ClCompile Include="kingjoyer\byte_functions.cpp" />
     <ClCompile Include="kingjoyer\functions.cpp" />

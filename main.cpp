@@ -1,5 +1,6 @@
 #include "includes.h"
 
+
 typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
 static HWND window = NULL;
@@ -20,17 +21,69 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice) {
 bool init = false;
 bool openMenu = false;
 
+std::unordered_map<std::string, int> hotkeys;
+
+int mapKey(const std::string& keyName) {
+	static std::unordered_map<std::string, int> keyMap = {
+		{"A", 'A'}, {"B", 'B'}, {"C", 'C'}, // Alphabet keys
+		{"D", 'D'}, {"E", 'E'}, {"F", 'F'}, {"G", 'G'},
+		{"H", 'H'}, {"I", 'I'}, {"J", 'J'}, {"K", 'K'},
+		{"L", 'L'}, {"M", 'M'}, {"N", 'N'}, {"O", 'O'},
+		{"P", 'P'}, {"Q", 'Q'}, {"R", 'R'}, {"S", 'S'},
+		{"T", 'T'}, {"U", 'U'}, {"V", 'V'}, {"W", 'W'},
+		{"X", 'X'}, {"Y", 'Y'}, {"Z", 'Z'},
+		{"0", '0'}, {"1", '1'}, {"2", '2'}, {"3", '3'}, // Number keys
+		{"4", '4'}, {"5", '5'}, {"6", '6'}, {"7", '7'},
+		{"8", '8'}, {"9", '9'},
+		{"F1", VK_F1}, {"F2", VK_F2}, {"F3", VK_F3}, // Function keys
+		{"F4", VK_F4}, {"F5", VK_F5}, {"F6", VK_F6},
+		{"F7", VK_F7}, {"F8", VK_F8}, {"F9", VK_F9},
+		{"F10", VK_F10}, {"F11", VK_F11}, {"F12", VK_F12},
+		{"ESCAPE", VK_ESCAPE}, {"ENTER", VK_RETURN}, {"SPACE", VK_SPACE},
+		{"SHIFT", VK_SHIFT}, {"CTRL", VK_CONTROL}, {"ALT", VK_MENU},
+		{"TAB", VK_TAB}, {"+", VK_OEM_PLUS}, {"-", VK_OEM_MINUS},
+	};
+
+	auto it = keyMap.find(keyName);
+	if (it != keyMap.end()) {
+		return it->second; // Return the virtual key code
+	}
+
+	return -1; // Return -1 for unknown keys
+}
+
+
+void loadHotkeysFromConfig() {
+	INIReader reader("keybinds.ini");
+
+	if (reader.ParseError() != 0) {
+		std::cerr << "Can't load keybinds.ini" << std::endl;
+		return;
+	}
+
+	hotkeys["developerMode"] = mapKey(reader.Get("Hotkeys", "developerMode", "K"));
+	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
+}
+
+void keybindings()
+{
+	if (GetAsyncKeyState(hotkeys["developerMode"]) & 1) functions::developerMode();
+	if (GetAsyncKeyState(hotkeys["fps60"]) & 1) functions::fps60();
+}
+
 // Declare the detour function
 long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
 	if (!init)
 	{
 		InitImGui(pDevice);
+		loadHotkeysFromConfig();
 		init = true;
 	}
 
 	if (GetAsyncKeyState(VK_NUMPAD3) & 1) openMenu = !openMenu;
 
+	keybindings();
 
 	if (openMenu)
 	{

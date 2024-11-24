@@ -319,6 +319,7 @@ void displaySkinButtons(bool lang)
 }
 
 bool developerMode = false;
+bool fps60 = false;
 
 bool renderVolumes = false;
 bool renderLoadTriggers = false;
@@ -350,8 +351,6 @@ bool renderRigidInstances = true;
 bool renderPlaySurface = true;
 bool renderGeometry = false;
 
-
-bool fps60 = false;
 bool invulBilbo = false;
 bool stamina = false;
 bool stones = false;
@@ -448,12 +447,11 @@ void gui::Render() noexcept
 	ImGui::Text("");
 
 	if (ImGui::Checkbox(lang ? "Developer mode" : (const char*)u8"Режим Разработчика", &developerMode)) {
-		change_1Byte_hobbit((LPVOID)0x007600E9, 0x01, 0x00); //функция включения режима разработчика
+		functions::developerMode();
 	}
 	if (ImGui::Checkbox(lang ? "60 FPS" : (const char*)u8"60 фпс", &fps60)) {
-		change_2Byte_hobbit((LPVOID)0x006EFBDA, 0x4180, 0x4204); //функция FPS
+		functions::fps60();
 	}
-
 
 	if (ImGui::CollapsingHeader(lang ? "Renders" : (const char*)u8"Рендеры"))
 	{
@@ -465,67 +463,67 @@ void gui::Render() noexcept
 		if (ImGui::BeginTable("split", 3))
 		{
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Volumes" : (const char*)u8"Волумы", &renderVolumes)) {
-				functions::renderVolumes(renderVolumes);
+				functions::renderVolumes();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "PolyCache" : (const char*)u8"Полигоны", &polyCache)) {
-				functions::polyCache(polyCache);
+				functions::polyCache();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Load Triggers" : (const char*)u8"Триггеры Загрузки", &renderLoadTriggers)) {
-				functions::renderLoadTriggers(renderLoadTriggers);
+				functions::renderLoadTriggers();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Triggers" : (const char*)u8"Триггеры", &renderTriggers)) {
-				functions::renderTriggers(renderTriggers);
+				functions::renderTriggers();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Water" : (const char*)u8"Вода", &renderWater)) {
-				functions::renderWater(renderWater);
+				functions::renderWater();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Web" : (const char*)u8"Паутина", &renderWeb)) {
-				functions::renderWeb(renderWeb);
+				functions::renderWeb();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Ropes" : (const char*)u8"Веревка", &renderRopes)) {
-				functions::renderRopes(renderRopes);
+				functions::renderRopes();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Leaves" : (const char*)u8"Листва", &renderLeaves)) {
-				functions::renderLeaves(renderLeaves);
+				functions::renderLeaves();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Chests" : (const char*)u8"Сундуки", &renderChests)) {
-				functions::renderChests(renderChests);
+				functions::renderChests();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Levers" : (const char*)u8"Рычаги", &renderLevers)) {
-				functions::renderLevers(renderLevers);
+				functions::renderLevers();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Bilbo" : (const char*)u8"Бильбо", &renderBilbo)) {
-				functions::renderBilbo(renderBilbo);
+				functions::renderBilbo();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Lights" : (const char*)u8"Свет", &renderLights)) {
-				functions::renderLights(renderLights);
+				functions::renderLights();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Effects" : (const char*)u8"Эффекты", &renderEffects)) {
-				functions::renderEffects(renderEffects);
+				functions::renderEffects();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Breakway" : (const char*)u8"Падающий путь", &breakway)) {
-				functions::breakway(breakway);
+				functions::breakway();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Falling boulders" : (const char*)u8"Падающие булыжники", &boulderRun)) {
-				functions::boulderRun(boulderRun);
+				functions::boulderRun();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Skybox" : (const char*)u8"Небо", &renderSkybox)) {
-				functions::renderSkybox(renderSkybox);
+				functions::renderSkybox();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Save Pedestal" : (const char*)u8"Пьедестал сохранения", &renderSavePedestal)) {
-				functions::renderSavePedestal(renderSavePedestal);
+				functions::renderSavePedestal();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Push boxes" : (const char*)u8"Двигающиеся коробки", &renderPushBoxes)) {
-				functions::renderPushBoxes(renderPushBoxes);
+				functions::renderPushBoxes();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Rigid Instances" : (const char*)u8"Объекты", &renderRigidInstances)) {
-				functions::renderRigidInstances(renderRigidInstances);
+				functions::renderRigidInstances();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Play surfaces" : (const char*)u8"Ландшафт", &renderPlaySurface)) {
-				functions::renderPlaySurface(renderPlaySurface);
+				functions::renderPlaySurface();
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Geometry" : (const char*)u8"Геометрия", &renderGeometry)) {
-				functions::renderGeometry(renderGeometry);
+				functions::renderGeometry();
 			}
 			ImGui::EndTable();
 		}

@@ -1,5 +1,12 @@
 #pragma once
 
+#include <windows.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <memoryapi.h>
+#include <tlhelp32.h>
+
 int change_1Byte_hobbit(LPVOID Address, BYTE Znachenie, BYTE Iznachalnoe) noexcept;
 int change_2Byte_hobbit(LPVOID Address, WORD Znachenie, WORD Iznachalnoe) noexcept;
 int change_4Byte_hobbit(LPVOID Address, DWORD Znachenie, DWORD Iznachalnoe) noexcept;

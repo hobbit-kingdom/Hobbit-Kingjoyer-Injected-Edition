@@ -22,6 +22,9 @@
     <Filter Include="kingjoyer">
       <UniqueIdentifier>{5845ebb0-6c2b-48d6-83d6-8d56fb46bb79}</UniqueIdentifier>
     </Filter>
+    <Filter Include="inireader">
+      <UniqueIdentifier>{9cf34a35-f781-4032-a868-29b0aba2f175}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes.h">
@@ -99,6 +102,12 @@
     <ClInclude Include="kingjoyer\functions.h">
       <Filter>kingjoyer</Filter>
     </ClInclude>
+    <ClInclude Include="inireader\INIReader.h">
+      <Filter>inireader</Filter>
+    </ClInclude>
+    <ClInclude Include="inireader\ini.h">
+      <Filter>inireader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -163,6 +172,12 @@
     </ClCompile>
     <ClCompile Include="kingjoyer\functions.cpp">
       <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="inireader\INIReader.cpp">
+      <Filter>inireader</Filter>
+    </ClCompile>
+    <ClCompile Include="inireader\ini.c">
+      <Filter>inireader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
