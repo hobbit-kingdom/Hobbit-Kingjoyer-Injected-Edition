@@ -452,6 +452,9 @@ void gui::Render() noexcept
 	if (ImGui::Checkbox(lang ? "60 FPS" : (const char*)u8"60 фпс", &fps60)) {
 		functions::fps60();
 	}
+	if (ImGui::Checkbox(lang ? "Hotkeys" : (const char*)u8"Горячие клавиши", &enableKeybinds)) {
+
+	}
 
 	if (ImGui::CollapsingHeader(lang ? "Renders" : (const char*)u8"Рендеры"))
 	{

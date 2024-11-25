@@ -39,4 +39,7 @@ namespace gui
 	void BeginRender() noexcept;
 	void EndRender() noexcept;
 	void Render() noexcept;
+
+	//keybinds
+	inline bool enableKeybinds = true;
 }

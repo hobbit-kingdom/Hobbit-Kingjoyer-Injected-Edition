@@ -83,7 +83,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 	if (GetAsyncKeyState(VK_NUMPAD3) & 1) openMenu = !openMenu;
 
-	keybindings();
+	if (gui::enableKeybinds) keybindings();
 
 	if (openMenu)
 	{
