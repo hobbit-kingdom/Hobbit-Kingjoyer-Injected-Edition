@@ -70,20 +70,94 @@ void loadHotkeysFromConfig() {
 		return;
 	}
 
-	hotkeys["developerMode"] = mapKey(reader.Get("Hotkeys", "developerMode", "K"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
-	hotkeys["renderVolumes"] = mapKey(reader.Get("Hotkeys", "renderVolumes", ""));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "F1"));
+	hotkeys["developerMode"] = mapKey(reader.Get("Hotkeys", "developerMode", "F8"));
+	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "+"));
+	hotkeys["renderVolumes"] = mapKey(reader.Get("Hotkeys", "renderVolumes", "NUMPAD4"));
+	hotkeys["renderLoadTriggers"] = mapKey(reader.Get("Hotkeys", "renderLoadTriggers", "NUMPAD4"));
+	hotkeys["renderTriggers"] = mapKey(reader.Get("Hotkeys", "renderTriggers", "NUMPAD4"));
+	hotkeys["renderWater"] = mapKey(reader.Get("Hotkeys", "renderWater", ""));
+	hotkeys["renderWeb"] = mapKey(reader.Get("Hotkeys", "renderWeb", ""));
+	hotkeys["renderRopes"] = mapKey(reader.Get("Hotkeys", "renderRopes", ""));
+	hotkeys["renderLeaves"] = mapKey(reader.Get("Hotkeys", "renderLeaves", ""));
+	hotkeys["renderChests"] = mapKey(reader.Get("Hotkeys", "renderChests", ""));
+	hotkeys["renderLevers"] = mapKey(reader.Get("Hotkeys", "renderLevers", ""));
+	hotkeys["renderBilbo"] = mapKey(reader.Get("Hotkeys", "renderBilbo", "NUMPAD1"));
+	hotkeys["renderLights"] = mapKey(reader.Get("Hotkeys", "renderLights", "NUMPAD6"));
+	hotkeys["renderEffects"] = mapKey(reader.Get("Hotkeys", "renderEffects", ""));
+	hotkeys["renderSkybox"] = mapKey(reader.Get("Hotkeys", "renderSkybox", "NUMPAD3"));
+	hotkeys["renderSavePedestal"] = mapKey(reader.Get("Hotkeys", "renderSavePedestal", ""));
+	hotkeys["renderPushBoxes"] = mapKey(reader.Get("Hotkeys", "renderPushBoxes", ""));
+	hotkeys["breakway"] = mapKey(reader.Get("Hotkeys", "breakway", ""));
+	hotkeys["boulderRun"] = mapKey(reader.Get("Hotkeys", "boulderRun", ""));
+	hotkeys["polyCache"] = mapKey(reader.Get("Hotkeys", "polyCache", "NUMPAD7"));
+	hotkeys["bilboPos"] = mapKey(reader.Get("Hotkeys", "bilboPos", "APOSTROPHE"));
+	hotkeys["cutsceneInfo"] = mapKey(reader.Get("Hotkeys", "cutsceneInfo", ""));
+	hotkeys["objInfo"] = mapKey(reader.Get("Hotkeys", "objInfo", "CLOSE_BRACKET"));
+	hotkeys["maxobjInfo"] = mapKey(reader.Get("Hotkeys", "maxobjInfo", "OPEN_BRACKET"));
+	hotkeys["objInView"] = mapKey(reader.Get("Hotkeys", "objInView", "COMMA"));
+	hotkeys["trianglesInView"] = mapKey(reader.Get("Hotkeys", "trianglesInView", ""));
+	hotkeys["randommod"] = mapKey(reader.Get("Hotkeys", "randommod", ""));
+	hotkeys["pickupall"] = mapKey(reader.Get("Hotkeys", "pickupall", ""));
+	hotkeys["renderRigidInstances"] = mapKey(reader.Get("Hotkeys", "renderRigidInstances", "NUMPAD9"));
+	hotkeys["renderPlaySurface"] = mapKey(reader.Get("Hotkeys", "renderPlaySurface", "NUMPAD5"));
+	hotkeys["renderGeometry"] = mapKey(reader.Get("Hotkeys", "renderGeometry", "PERIOD"));
+	hotkeys["invulBilbo"] = mapKey(reader.Get("Hotkeys", "invulBilbo", "V"));
+	hotkeys["stamina"] = mapKey(reader.Get("Hotkeys", "stamina", ""));
+	hotkeys["stones"] = mapKey(reader.Get("Hotkeys", "stones", ""));
+	hotkeys["face1"] = mapKey(reader.Get("Hotkeys", "face1", ""));
+	hotkeys["face2"] = mapKey(reader.Get("Hotkeys", "face2", ""));
+	hotkeys["poison_chance"] = mapKey(reader.Get("Hotkeys", "poison_chance", ""));
+	hotkeys["sliding_wall"] = mapKey(reader.Get("Hotkeys", "sliding_wall", ""));
+	hotkeys["finish_game"] = mapKey(reader.Get("Hotkeys", "finish_game", ""));
+	hotkeys["finish_demo"] = mapKey(reader.Get("Hotkeys", "finish_demo", ""));
+	hotkeys["slide"] = mapKey(reader.Get("Hotkeys", "slide", "J"));
+	hotkeys["lock_animation"] = mapKey(reader.Get("Hotkeys", "lock_animation", "R"));
+	hotkeys["chesttimer"] = mapKey(reader.Get("Hotkeys", "chesttimer", ""));
+
+	//teleportation
+	hotkeys["setTeleportPoint"] = mapKey(reader.Get("Hotkeys", "setTeleportPoint", "Y"));
+	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
+
 }
 
 void keybindings()
 {
 	if (GetAsyncKeyState(hotkeys["developerMode"]) & 1) functions::developerMode();
 	if (GetAsyncKeyState(hotkeys["fps60"]) & 1) functions::fps60();
+
+	if (GetAsyncKeyState(hotkeys["renderVolumes"]) & 1) functions::renderVolumes();
+	if (GetAsyncKeyState(hotkeys["polyCache"]) & 1) functions::polyCache();
+	if (GetAsyncKeyState(hotkeys["renderLoadTriggers"]) & 1) functions::renderLoadTriggers();
+	if (GetAsyncKeyState(hotkeys["renderTriggers"]) & 1) functions::renderTriggers();
+	if (GetAsyncKeyState(hotkeys["renderWater"]) & 1) functions::renderWater();
+	if (GetAsyncKeyState(hotkeys["renderWeb"]) & 1) functions::renderWeb();
+	if (GetAsyncKeyState(hotkeys["renderRopes"]) & 1) functions::renderRopes();
+	if (GetAsyncKeyState(hotkeys["renderLeaves"]) & 1) functions::renderLeaves();
+	if (GetAsyncKeyState(hotkeys["renderChests"]) & 1) functions::renderChests();
+	if (GetAsyncKeyState(hotkeys["renderLevers"]) & 1) functions::renderLevers();
+	if (GetAsyncKeyState(hotkeys["renderBilbo"]) & 1) functions::renderBilbo();
+	if (GetAsyncKeyState(hotkeys["renderLights"]) & 1) functions::renderLights();
+	if (GetAsyncKeyState(hotkeys["renderEffects"]) & 1) functions::renderEffects();
+	if (GetAsyncKeyState(hotkeys["breakway"]) & 1) functions::breakway();
+	if (GetAsyncKeyState(hotkeys["boulderRun"]) & 1) functions::boulderRun();
+	if (GetAsyncKeyState(hotkeys["renderSkybox"]) & 1) functions::renderSkybox();
+	if (GetAsyncKeyState(hotkeys["renderSavePedestal"]) & 1) functions::renderSavePedestal();
+	if (GetAsyncKeyState(hotkeys["renderPushBoxes"]) & 1) functions::renderPushBoxes();
+	if (GetAsyncKeyState(hotkeys["renderRigidInstances"]) & 1) functions::renderRigidInstances();
+	if (GetAsyncKeyState(hotkeys["renderPlaySurface"]) & 1) functions::renderPlaySurface();
+	if (GetAsyncKeyState(hotkeys["renderGeometry"]) & 1) functions::renderGeometry();
+
+	if (GetAsyncKeyState(hotkeys["setTeleportPoint"]) & 1) gui::SetTeleportPoint();
+	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();
+
+}
+
+void SendKeyPress(HWND hwnd, WPARAM key) {
+	// Send a WM_KEYDOWN message
+	PostMessage(hwnd, WM_KEYDOWN, key, 0);
+
+	// Send a WM_KEYUP message
+	PostMessage(hwnd, WM_KEYUP, key, 0);
 }
 
 // Declare the detour function
@@ -96,12 +170,13 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 		init = true;
 	}
 
-	if (GetAsyncKeyState(VK_NUMPAD3) & 1) openMenu = !openMenu;
+	if (GetAsyncKeyState(VK_TAB) & 1) openMenu = !openMenu;
 
 	if (gui::enableKeybinds) keybindings();
 
 	if (openMenu)
 	{
+
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();

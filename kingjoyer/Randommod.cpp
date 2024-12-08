@@ -13,13 +13,13 @@
 float timer2 = 0;
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_int_distribution<> distrib(0, 12);
+std::uniform_int_distribution<> distrib(0, 14);
 int random_number = distrib(gen);
 int a = 0;
 bool vkl = false;
 void RandomMod(float vremaeffectof)
 {
-	if (vkl == false or timer2 >= vremaeffectof) 
+	if (vkl == false or timer2 >= vremaeffectof)
 	{
 		if (random_number == 0) change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x00);  //невидимый Бильбо
 		else if (random_number == 1) change_2Byte_hobbit((LPVOID)0x0075B852, 0x42C8, 0x4396); //медленный Бильбо
@@ -35,7 +35,7 @@ void RandomMod(float vremaeffectof)
 		else if (random_number == 7) change_2Byte_hobbit((LPVOID)0x0077244A, 0x4080, 0x0000); //широкий Бильбо
 		else if (random_number == 8) change_1Byte_hobbit((LPVOID)0x0045CA39, 0xD4, 0xD8);//типо диабло
 		else if (random_number == 9) change_2Byte_hobbit((LPVOID)0x00772BF8, 0x0000, 0x4170); //видимость всех объектов через объекты
-		else if (random_number == 10) change_4Byte_hobbit((LPVOID)0x00772BF0, 0x40866666 ,0x3F99999A); //перевернутая камера
+		else if (random_number == 10) change_4Byte_hobbit((LPVOID)0x00772BF0, 0x40866666, 0x3F99999A); //перевернутая камера
 		else if (random_number == 11)
 		{
 			change_4Byte_hobbit((LPVOID)0x00772A70, 0x3F800000, 0x42C80000);
@@ -48,6 +48,8 @@ void RandomMod(float vremaeffectof)
 			change_4Byte_hobbit((LPVOID)0x00772B38, 0xC3960000, 0x42C80000);  //второе лицо
 			change_4Byte_hobbit((LPVOID)0x00772B3C, 0xC3960000, 0x43960000);
 		}
+		else if (random_number == 13) change_4Byte_hobbit((LPVOID)0x006E92E8, 0x3F8CCCCD, 0x3F800000); //большой Бильбо
+		else if (random_number == 14) change_4Byte_hobbit((LPVOID)0x006E92E8, 0x3F666666, 0x3F800000); //маленький Бильбо
 		vkl = !vkl;
 	}
 	if (timer2 >= vremaeffectof) {

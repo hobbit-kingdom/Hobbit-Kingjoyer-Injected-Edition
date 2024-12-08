@@ -40,6 +40,10 @@ namespace gui
 	void EndRender() noexcept;
 	void Render() noexcept;
 
+	//functions
+	void SetTeleportPoint() noexcept;
+	void Teleport() noexcept;
+
 	//keybinds
 	inline bool enableKeybinds = true;
 }

@@ -542,28 +542,15 @@ void gui::Render() noexcept
 		ImGui::Separator();
 
 		if (ImGui::Button(lang ? "Set Teleportation Waypoint" : (const char*)u8"Установить Точку Телепортации")) {
-			savedPoint.ukazatel = ukazatel_hobbit((LPVOID)0x0075BA3C);
-			ukazatel = savedPoint.ukazatel;
-			savedPoint.x = save_float_hobbit(ukazatel + 5);
-			savedPoint.y = save_float_hobbit(ukazatel + 6);
-			savedPoint.z = save_float_hobbit(ukazatel + 7);//функция установки точки телепортации
+			gui::SetTeleportPoint();
 		}
+
 		ImGui::SameLine();
 		ImGui::Text("");
 		ImGui::SameLine();
+
 		if (ImGui::Button(lang ? "Teleport!" : (const char*)u8"Телепортироваться!")) {
-			x = savedPoint.x;
-			y = savedPoint.y;
-			z = savedPoint.z;
-			ukazatel = savedPoint.ukazatel;
-			if (x) {
-				change_float_hobbit(ukazatel + 5, x);
-				change_float_hobbit(ukazatel + 281, x);
-				change_float_hobbit(ukazatel + 6, y);
-				change_float_hobbit(ukazatel + 282, y);
-				change_float_hobbit(ukazatel + 7, z);
-				change_float_hobbit(ukazatel + 283, z);
-			}
+			gui::Teleport();
 		}
 
 		ImGui::Text("X: %g", savedPoint.x); ImGui::SameLine();
@@ -660,7 +647,6 @@ void gui::Render() noexcept
 			change_float_hobbit((LPVOID)0x0075B868, speedInJump);
 		}
 
-
 		ImGui::Unindent();
 	}
 
@@ -686,8 +672,6 @@ void gui::Render() noexcept
 		if (ImGui::Button(lang ? "Apply manual FOV" : (const char*)u8"Применить ручной Угол Обзора")) {
 			change_float_hobbit((LPVOID)0x00772BF0, fovValue);
 		}
-
-
 
 		static int cameraDistance = 100;
 		ImGui::Text(lang ? "Camera Distance" : (const char*)u8"Растояние камеры");
@@ -1196,4 +1180,31 @@ void gui::Render() noexcept
 	}
 
 	ImGui::End();
+}
+
+//complicated functions
+
+void gui::SetTeleportPoint() noexcept
+{
+	savedPoint.ukazatel = ukazatel_hobbit((LPVOID)0x0075BA3C);
+	ukazatel = savedPoint.ukazatel;
+	savedPoint.x = save_float_hobbit(ukazatel + 5);
+	savedPoint.y = save_float_hobbit(ukazatel + 6);
+	savedPoint.z = save_float_hobbit(ukazatel + 7);//функция установки точки телепортации
+}
+
+void gui::Teleport() noexcept
+{
+	x = savedPoint.x;
+	y = savedPoint.y;
+	z = savedPoint.z;
+	ukazatel = savedPoint.ukazatel;
+	if (x) {
+		change_float_hobbit(ukazatel + 5, x);
+		change_float_hobbit(ukazatel + 281, x);
+		change_float_hobbit(ukazatel + 6, y);
+		change_float_hobbit(ukazatel + 282, y);
+		change_float_hobbit(ukazatel + 7, z);
+		change_float_hobbit(ukazatel + 283, z);
+	}
 }
