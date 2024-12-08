@@ -1114,7 +1114,7 @@ void gui::Render() noexcept
 		ImGui::Indent();
 		ImGui::Text(lang ? "Effect change time" : (const char*)u8"Время смены эффектов");
 		ImGui::PushItemWidth(300);
-		ImGui::InputFloat(" .", &vremaeffectof, 10);
+		ImGui::InputFloat(" .", &vremaeffectof, 1);
 		ImGui::PopItemWidth();
 		if (vremaeffectof < 0.0f) {
 			vremaeffectof = 0.0f;
