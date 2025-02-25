@@ -1,4 +1,4 @@
-#include "functions.h"
+п»ї#include "functions.h"
 
 
 #include "byte_functions.h"
@@ -9,93 +9,93 @@
 #include <tlhelp32.h>
 
 void functions::developerMode() noexcept {
-	change_1Byte_hobbit((LPVOID)0x007600E9, 0x01, 0x00); //функция включения режима разработчика
+	change_1Byte_hobbit((LPVOID)0x007600E9, 0x01, 0x00); //С„СѓРЅРєС†РёСЏ РІРєР»СЋС‡РµРЅРёСЏ СЂРµР¶РёРјР° СЂР°Р·СЂР°Р±РѕС‚С‡РёРєР°
 }
 
 void functions::fps60() noexcept {
-	change_2Byte_hobbit((LPVOID)0x006EFBDA, 0x4180, 0x4204); //функция FPS
+	change_2Byte_hobbit((LPVOID)0x006EFBDA, 0x4180, 0x4204); //С„СѓРЅРєС†РёСЏ FPS
 }
 
 void functions::renderVolumes() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B04, 0x01, 0x00); // функция рендера волумов
+	change_1Byte_hobbit((LPVOID)0x00777B04, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РІРѕР»СѓРјРѕРІ
 }
 
 void functions::polyCache() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00778078, 0x01, 0x00); // функция рендера полигонов
+	change_1Byte_hobbit((LPVOID)0x00778078, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РїРѕР»РёРіРѕРЅРѕРІ
 }
 
 void functions::renderLoadTriggers() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B18, 0x01, 0x00); // функция рендера загрузочных триггеров
+	change_1Byte_hobbit((LPVOID)0x00777B18, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° Р·Р°РіСЂСѓР·РѕС‡РЅС‹С… С‚СЂРёРіРіРµСЂРѕРІ
 }
 
 void functions::renderTriggers() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B1C, 0x01, 0x00); // функция рендера триггеров
+	change_1Byte_hobbit((LPVOID)0x00777B1C, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° С‚СЂРёРіРіРµСЂРѕРІ
 }
 
 void functions::renderWater() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B10, 0x01, 0x00); // функция рендера воды
+	change_1Byte_hobbit((LPVOID)0x00777B10, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РІРѕРґС‹
 }
 
 void functions::renderWeb() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B90, 0x01, 0x00); // функция рендера паутины
+	change_1Byte_hobbit((LPVOID)0x00777B90, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РїР°СѓС‚РёРЅС‹
 }
 
 void functions::renderRopes() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B24, 0x01, 0x00); // функция рендера веревок
+	change_1Byte_hobbit((LPVOID)0x00777B24, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РІРµСЂРµРІРѕРє
 }
 
 void functions::renderLeaves() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B80, 0x01, 0x00); // функция рендер кластеров листвы деревьев
+	change_1Byte_hobbit((LPVOID)0x00777B80, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ РєР»Р°СЃС‚РµСЂРѕРІ Р»РёСЃС‚РІС‹ РґРµСЂРµРІСЊРµРІ
 }
 
 void functions::renderChests() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AF0, 0x01, 0x00); // функция рендер сундуков
+	change_1Byte_hobbit((LPVOID)0x00777AF0, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ СЃСѓРЅРґСѓРєРѕРІ
 }
 
 void functions::renderLevers() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AEC, 0x01, 0x00); // функция рендер рычагов
+	change_1Byte_hobbit((LPVOID)0x00777AEC, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ СЂС‹С‡Р°РіРѕРІ
 }
 
 void functions::renderBilbo() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x00); // функция рендер Бильбо
+	change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ Р‘РёР»СЊР±Рѕ
 }
 
 void functions::renderLights() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AA4, 0x01, 0x00); // функция рендер света
+	change_1Byte_hobbit((LPVOID)0x00777AA4, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ СЃРІРµС‚Р°
 }
 
 void functions::renderEffects() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B88, 0x01, 0x00); // функция рендер эффектов
+	change_1Byte_hobbit((LPVOID)0x00777B88, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ СЌС„С„РµРєС‚РѕРІ
 }
 
 void functions::breakway() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B0C, 0x01, 0x00); // функция рендера падающего пути
+	change_1Byte_hobbit((LPVOID)0x00777B0C, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РїР°РґР°СЋС‰РµРіРѕ РїСѓС‚Рё
 }
 
 void functions::boulderRun() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AFC, 0x01, 0x00); // функция рендер болдер рана
+	change_1Byte_hobbit((LPVOID)0x00777AFC, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂ Р±РѕР»РґРµСЂ СЂР°РЅР°
 }
 
 void functions::renderSkybox() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777B5C, 0x01, 0x00); // функция рендера скайбокса
+	change_1Byte_hobbit((LPVOID)0x00777B5C, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° СЃРєР°Р№Р±РѕРєСЃР°
 }
 
 void functions::renderSavePedestal() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AF8, 0x01, 0x00); // функция рендера сохранялок
+	change_1Byte_hobbit((LPVOID)0x00777AF8, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° СЃРѕС…СЂР°РЅСЏР»РѕРє
 }
 
 void functions::renderPushBoxes() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777AF4, 0x01, 0x00); // функция рендера пушбоксов
+	change_1Byte_hobbit((LPVOID)0x00777AF4, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РїСѓС€Р±РѕРєСЃРѕРІ
 }
 
 void functions::renderRigidInstances() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777A8C, 0x01, 0x00); // функция рендера rigidInstances
+	change_1Byte_hobbit((LPVOID)0x00777A8C, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° rigidInstances
 }
 
 void functions::renderPlaySurface() noexcept {
-	change_1Byte_hobbit((LPVOID)0x00777A98, 0x01, 0x00); // функция рендера ландшафта
+	change_1Byte_hobbit((LPVOID)0x00777A98, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° Р»Р°РЅРґС€Р°С„С‚Р°
 }
 
 void functions::renderGeometry() noexcept {
-	change_1Byte_hobbit((LPVOID)0x0075D2CC, 0x01, 0x00); // функция рендера геометрии
+	change_1Byte_hobbit((LPVOID)0x0075D2CC, 0x01, 0x00); // С„СѓРЅРєС†РёСЏ СЂРµРЅРґРµСЂР° РіРµРѕРјРµС‚СЂРёРё
 }
