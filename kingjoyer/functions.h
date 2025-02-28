@@ -24,5 +24,6 @@ namespace functions
 	void renderRigidInstances() noexcept;
 	void renderPlaySurface() noexcept;
 	void renderGeometry() noexcept;
+	void renderHud() noexcept;
 
 }

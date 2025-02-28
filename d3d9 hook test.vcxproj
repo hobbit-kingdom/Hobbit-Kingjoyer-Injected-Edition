@@ -161,7 +161,6 @@
     <ClInclude Include="kingjoyer\MemoryAccess.h" />
     <ClInclude Include="kingjoyer\PickupAll.h" />
     <ClInclude Include="kingjoyer\Randommod.h" />
-    <ClInclude Include="Macro.h" />
     <ClInclude Include="minhook\buffer.h" />
     <ClInclude Include="minhook\hde32.h" />
     <ClInclude Include="minhook\hde64.h" />
@@ -189,7 +188,6 @@
     <ClCompile Include="kingjoyer\MemoryAccess.cpp" />
     <ClCompile Include="kingjoyer\PickupAll.cpp" />
     <ClCompile Include="kingjoyer\Randommod.cpp" />
-    <ClCompile Include="Macro.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="minhook\buffer.c" />
     <ClCompile Include="minhook\hde32.c" />

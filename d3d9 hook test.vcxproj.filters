@@ -108,9 +108,6 @@
     <ClInclude Include="inireader\ini.h">
       <Filter>inireader</Filter>
     </ClInclude>
-    <ClInclude Include="Macro.h">
-      <Filter>kingjoyer</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -181,9 +178,6 @@
     </ClCompile>
     <ClCompile Include="inireader\ini.c">
       <Filter>inireader</Filter>
-    </ClCompile>
-    <ClCompile Include="Macro.cpp">
-      <Filter>kingjoyer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

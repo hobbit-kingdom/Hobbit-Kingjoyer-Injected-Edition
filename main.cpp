@@ -71,7 +71,7 @@ void loadHotkeysFromConfig() {
 	}
 
 	hotkeys["developerMode"] = mapKey(reader.Get("Hotkeys", "developerMode", "F8"));
-	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "+"));
+	hotkeys["fps60"] = mapKey(reader.Get("Hotkeys", "fps60", "9"));
 	hotkeys["renderVolumes"] = mapKey(reader.Get("Hotkeys", "renderVolumes", "NUMPAD4"));
 	hotkeys["renderLoadTriggers"] = mapKey(reader.Get("Hotkeys", "renderLoadTriggers", "NUMPAD4"));
 	hotkeys["renderTriggers"] = mapKey(reader.Get("Hotkeys", "renderTriggers", "NUMPAD4"));
@@ -101,6 +101,7 @@ void loadHotkeysFromConfig() {
 	hotkeys["renderRigidInstances"] = mapKey(reader.Get("Hotkeys", "renderRigidInstances", "NUMPAD9"));
 	hotkeys["renderPlaySurface"] = mapKey(reader.Get("Hotkeys", "renderPlaySurface", "NUMPAD5"));
 	hotkeys["renderGeometry"] = mapKey(reader.Get("Hotkeys", "renderGeometry", "PERIOD"));
+	hotkeys["renderHud"] = mapKey(reader.Get("Hotkeys", "renderHud", "H"));
 	hotkeys["invulBilbo"] = mapKey(reader.Get("Hotkeys", "invulBilbo", "V"));
 	hotkeys["stamina"] = mapKey(reader.Get("Hotkeys", "stamina", ""));
 	hotkeys["stones"] = mapKey(reader.Get("Hotkeys", "stones", ""));
@@ -145,7 +146,9 @@ void keybindings()
 	if (GetAsyncKeyState(hotkeys["renderPushBoxes"]) & 1) functions::renderPushBoxes();
 	if (GetAsyncKeyState(hotkeys["renderRigidInstances"]) & 1) functions::renderRigidInstances();
 	if (GetAsyncKeyState(hotkeys["renderPlaySurface"]) & 1) functions::renderPlaySurface();
+
 	if (GetAsyncKeyState(hotkeys["renderGeometry"]) & 1) functions::renderGeometry();
+	if (GetAsyncKeyState(hotkeys["renderHud"]) & 1) functions::renderHud();
 
 	if (GetAsyncKeyState(hotkeys["setTeleportPoint"]) & 1) gui::SetTeleportPoint();
 	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();

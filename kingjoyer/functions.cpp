@@ -99,3 +99,7 @@ void functions::renderPlaySurface() noexcept {
 void functions::renderGeometry() noexcept {
 	change_1Byte_hobbit((LPVOID)0x0075D2CC, 0x01, 0x00); // функция рендера геометрии
 }
+
+void functions::renderHud() noexcept {
+	change_1Byte_hobbit((LPVOID)0x0075EB7C, 0x00, 0x01); // функция рендера геометрии
+}

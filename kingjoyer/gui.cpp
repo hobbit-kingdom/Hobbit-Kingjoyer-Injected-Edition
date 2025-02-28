@@ -350,6 +350,7 @@ bool pickupall = false;
 bool renderRigidInstances = true;
 bool renderPlaySurface = true;
 bool renderGeometry = false;
+bool hud = true;
 
 bool invulBilbo = false;
 bool stamina = false;
@@ -527,6 +528,9 @@ void gui::Render() noexcept
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Geometry" : (const char*)u8"Геометрия", &renderGeometry)) {
 				functions::renderGeometry();
+			}
+			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "HUD" : (const char*)u8"HUD", &hud)) {
+				functions::renderHud();
 			}
 			ImGui::EndTable();
 		}
