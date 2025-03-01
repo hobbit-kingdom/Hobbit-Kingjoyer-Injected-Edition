@@ -103,3 +103,11 @@ void functions::renderGeometry() noexcept {
 void functions::renderHud() noexcept {
 	change_1Byte_hobbit((LPVOID)0x0075EB7C, 0x00, 0x01); // функция рендера геометрии
 }
+
+void functions::increaseFOV() noexcept {
+	plusA_float_hobbit((LPVOID)0x00772BF0, +0.1); //функция приближения камеры на 0.1
+}
+
+void functions::decreaseFOV() noexcept {
+	plusA_float_hobbit((LPVOID)0x00772BF0, -0.1); //функция отдаления камеры на 0.1
+}

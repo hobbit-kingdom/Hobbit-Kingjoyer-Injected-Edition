@@ -115,6 +115,10 @@ void loadHotkeysFromConfig() {
 	hotkeys["lock_animation"] = mapKey(reader.Get("Hotkeys", "lock_animation", "R"));
 	hotkeys["chesttimer"] = mapKey(reader.Get("Hotkeys", "chesttimer", ""));
 
+	//FOV
+	hotkeys["increaseFOV"] = mapKey(reader.Get("Hotkeys", "increaseFOV", "L"));
+	hotkeys["decreaseFOV"] = mapKey(reader.Get("Hotkeys", "decreaseFOV", "K"));
+
 	//teleportation
 	hotkeys["setTeleportPoint"] = mapKey(reader.Get("Hotkeys", "setTeleportPoint", "Y"));
 	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
@@ -149,6 +153,9 @@ void keybindings()
 
 	if (GetAsyncKeyState(hotkeys["renderGeometry"]) & 1) functions::renderGeometry();
 	if (GetAsyncKeyState(hotkeys["renderHud"]) & 1) functions::renderHud();
+
+	if (GetAsyncKeyState(hotkeys["increaseFOV"]) & 1) functions::increaseFOV();
+	if (GetAsyncKeyState(hotkeys["decreaseFOV"]) & 1) functions::decreaseFOV();
 
 	if (GetAsyncKeyState(hotkeys["setTeleportPoint"]) & 1) gui::SetTeleportPoint();
 	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();
