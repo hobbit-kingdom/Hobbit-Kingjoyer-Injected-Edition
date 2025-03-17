@@ -1,4 +1,4 @@
-#pragma comment(lib,"d3d9.lib")
+#pragma comment(lib,"d3dx9.lib")
 
 #include <Windows.h>
 #include <iostream>
@@ -16,3 +16,5 @@
 #include "kingjoyer/gui.h"
 #include "kingjoyer/functions.h"
 #include "inireader/INIReader.h"
+
+#include "string"

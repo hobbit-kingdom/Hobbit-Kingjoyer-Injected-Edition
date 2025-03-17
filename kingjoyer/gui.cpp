@@ -428,18 +428,20 @@ float vremaeffectof = 10;
 
 int HUD_HP = 98615574 - 22 + 6;
 
+bool huinya = false;
+
 void gui::Render() noexcept
 {
 	//ImGui::SetNextWindowPos({ 0, 0 });
 
 	ImGui::Begin(
-		"The KingJoyer v2.0 by king174rus and Mr_Kliff",
+		"The Hobbit KINGJOYER by king174rus and Mr_Kliff",
 		&isRunning,
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoCollapse
 	);
 
-	ImGui::Text("The Hobbit KingJoyer");
+	ImGui::Text("The Hobbit KINGJOYER");
 	ImGui::Text("");
 
 	if (ImGui::Button(!lang ? "Change Language" : (const char*)u8"Поменять язык")) lang = !lang;
@@ -454,6 +456,9 @@ void gui::Render() noexcept
 		functions::fps60();
 	}
 	if (ImGui::Checkbox(lang ? "Hotkeys" : (const char*)u8"Горячие клавиши", &enableKeybinds)) {
+
+	}
+	if (ImGui::Checkbox(lang ? "Overlay settings" : (const char*)u8"Отображать оверлей", &drawSettings)) {
 
 	}
 

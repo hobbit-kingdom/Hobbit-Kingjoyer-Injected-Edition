@@ -46,4 +46,5 @@ namespace gui
 
 	//keybinds
 	inline bool enableKeybinds = true;
+	inline bool drawSettings = true;
 }

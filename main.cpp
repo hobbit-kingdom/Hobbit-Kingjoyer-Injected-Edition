@@ -5,6 +5,9 @@ typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
 static HWND window = NULL;
 
+int windowHeight;
+int windowWidth;
+
 WNDPROC oWndProc;
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -122,7 +125,6 @@ void loadHotkeysFromConfig() {
 	//teleportation
 	hotkeys["setTeleportPoint"] = mapKey(reader.Get("Hotkeys", "setTeleportPoint", "Y"));
 	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
-
 }
 
 void keybindings()
@@ -170,23 +172,95 @@ void SendKeyPress(HWND hwnd, WPARAM key) {
 	PostMessage(hwnd, WM_KEYUP, key, 0);
 }
 
-// Declare the detour function
+LPD3DXFONT pFont = NULL;  // Font object
+
+
+void DrawCustomText(const char* text, int x, int y)
+{
+	if (pFont)
+	{
+		RECT rect1;
+
+		// Position at bottom-center
+		rect1.left = x - 100;  // Adjust for centering
+		rect1.top = y - 50;  // Adjust for bottom position
+		rect1.right = x + 100;
+		rect1.bottom = y - 20;
+
+		// Set color to white
+		pFont->DrawTextA(NULL, text, -1, &rect1, DT_CENTER | DT_NOCLIP, D3DCOLOR_ARGB(255, 255, 255, 255));
+	}
+}
+
+std::string GetKeyName(int vkCode)
+{
+	char keyName[32] = { 0 };
+	if (GetKeyNameTextA(MapVirtualKeyA(vkCode, MAPVK_VK_TO_VSC) << 16, keyName, sizeof(keyName)))
+	{
+		return std::string(keyName);
+	}
+	return "Unknown";
+}
+
+void DrawPressedKey()
+{
+	std::string pressedKey = "None";
+	for (int vkCode = 0x08; vkCode <= 0xFE; vkCode++) // Iterate through all possible keys
+	{
+		if (GetAsyncKeyState(vkCode) & 0x8000)
+		{
+			pressedKey = GetKeyName(vkCode);
+			break; // Display only one key at a time
+		}
+	}
+
+	int keyPosX = 120;
+	int keyPosY = 300;
+
+	DrawCustomText(pressedKey.c_str(), keyPosX, keyPosY);
+
+	return;
+}
+
+void DrawSettings()
+{
+	int posX = windowWidth - 100;
+	int posY = 200;
+	for (auto setting : settings)
+	{
+		if (setting.second)
+		{
+			DrawCustomText(setting.first, posX, posY);
+			posY += 32;
+		}
+	}
+
+	return;
+}
+
 long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
 	if (!init)
 	{
 		InitImGui(pDevice);
 		loadHotkeysFromConfig();
+
+		// Create font object (Size: 24, Bold)
+		D3DXCreateFont(pDevice, 24, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+			OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+			DEFAULT_PITCH | FF_DONTCARE, L"Arial", &pFont);
+
 		init = true;
 	}
 
-	if (GetAsyncKeyState(VK_TAB) & 1) openMenu = !openMenu;
+	if (GetAsyncKeyState(0x52) & 1) openMenu = !openMenu;
 
 	if (gui::enableKeybinds) keybindings();
 
+	if (gui::drawSettings) DrawSettings();
+
 	if (openMenu)
 	{
-
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -200,6 +274,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 	return oEndScene(pDevice);
 }
+
 
 LRESULT _stdcall WndProc(const HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -225,6 +300,12 @@ HWND GetProcessWindow()
 {
 	window = NULL;
 	EnumWindows(EnumWindowsCallBack, NULL);
+
+	RECT size;
+	GetWindowRect(window, &size);
+	windowWidth = size.right - size.left;
+	windowHeight = size.bottom - size.top;
+
 	return window;
 }
 
