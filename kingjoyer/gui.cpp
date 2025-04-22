@@ -310,7 +310,7 @@ void displaySkinButtons(bool lang)
 				ImGui::Text("%s", fileName.c_str());
 				ImGui::SameLine();
 
-				if (ImGui::Button(("Apply##" + fileName).c_str()))
+				if (ImGui::Button((lang ? "Apply##" : (const char*)u8"Принять##" + fileName).c_str()))
 					copyAndRenameFile(filePath.filename().string());
 
 			}
