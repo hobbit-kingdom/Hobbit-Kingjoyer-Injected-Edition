@@ -25,7 +25,8 @@ inline std::unordered_map<const char*, int> settings = {
 		{"renderPushBoxes", 0},
 		{"renderRigidInstances", 0},
 		{"renderPlaySurface", 0},
-		{"renderGeometry", 0}
+		{"renderGeometry", 0},
+		{"ressurect", 0},
 };
 
 namespace functions
@@ -56,4 +57,6 @@ namespace functions
 	void renderHud() noexcept;
 	void increaseFOV() noexcept;
 	void decreaseFOV() noexcept;
+
+	void ressurect() noexcept;
 }

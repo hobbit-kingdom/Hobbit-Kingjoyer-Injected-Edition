@@ -596,6 +596,10 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Cheats" : (const char*)u8"Читы");
 		ImGui::Separator();
 
+		if (ImGui::Button(lang ? "Ressurect" : (const char*)u8"Воскреснуть")) {
+			LPDWORD ressurect = ukazatel_hobbit((LPDWORD)0x0075BA3C) + 441;
+			change_1Byte_hobbit(ressurect, 0x0, 0x1);
+		}
 
 		if (ImGui::Checkbox(lang ? "Full stamina" : (const char*)u8"Бесконечная выносливость", &stamina)) {
 			//savedPoint.ukazatel_stamina = ukazatel_hobbit((LPDWORD)0x0075BA3C);
