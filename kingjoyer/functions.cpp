@@ -134,3 +134,8 @@ void functions::increaseFOV() noexcept {
 void functions::decreaseFOV() noexcept {
 	plusA_float_hobbit((LPVOID)0x00772BF0, -0.1); //функция отдаления камеры на 0.1
 }
+
+void functions::ressurect() noexcept {
+	LPDWORD ressurect = ukazatel_hobbit((LPDWORD)0x0075BA3C) + 441;
+	change_1Byte_hobbit(ressurect, 0x0, 0x1);
+}
