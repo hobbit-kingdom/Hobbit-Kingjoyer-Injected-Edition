@@ -450,7 +450,7 @@ void gui::Render() noexcept
 	//ImGui::SetNextWindowPos({ 0, 0 });
 
 	ImGui::Begin(
-		"The Hobbit KINGJOYER by king174rus and Mr_Kliff",
+		"The Hobbit KINGJOYER v1.3 by king174rus and Mr_Kliff",
 		&isRunning,
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoCollapse
