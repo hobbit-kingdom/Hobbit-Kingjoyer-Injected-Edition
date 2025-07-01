@@ -22,7 +22,7 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice) {
 }
 
 bool init = false;
-bool openMenu = true;
+bool openMenu = false;
 
 std::unordered_map<std::string, int> hotkeys;
 
