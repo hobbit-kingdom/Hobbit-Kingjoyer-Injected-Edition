@@ -22,7 +22,7 @@ void InitImGui(LPDIRECT3DDEVICE9 pDevice) {
 }
 
 bool init = false;
-bool openMenu = false;
+bool openMenu = true;
 
 std::unordered_map<std::string, int> hotkeys;
 
@@ -273,6 +273,9 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 		ImGui::EndFrame();
 		ImGui::Render();
+
+		pDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
+
 		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
 	}
 
@@ -302,8 +305,7 @@ BOOL CALLBACK EnumWindowsCallBack(HWND handle, LPARAM lParam)
 
 HWND GetProcessWindow()
 {
-	window = NULL;
-	EnumWindows(EnumWindowsCallBack, NULL);
+	window = FindWindowA("Hobbit Window Class", NULL);
 
 	RECT size;
 	GetWindowRect(window, &size);

@@ -17,7 +17,7 @@ At the bottom you will see the screen resolution change it accordingly to your s
 
 If you want to change some keybinds open the file called keybinds.ini and change them there.
 
-To OPEN THE KINGJOYER press TAB on your keyboard while in the game. 
+To OPEN THE KINGJOYER press R on your keyboard while in the game. 
 
 Only these keybinds are currently supported:
 
@@ -46,6 +46,8 @@ renderPlaySurface
 renderGeometry
 setTeleportPoint
 teleport
+ressurect 
+hud
 
 
 ---------------------------------------------------------------------
@@ -69,7 +71,7 @@ The Hobbit и выберите «Изменить».
 
 Если вы хотите изменить некоторые сочетания клавиш, откройте файл keybinds.ini и измените их там.
 
-Чтобы ОТКРЫТЬ KINGJOYER, нажмите клавишу TAB на клавиатуре во время игры.
+Чтобы ОТКРЫТЬ KINGJOYER, нажмите клавишу R на клавиатуре во время игры.
 
 Только эти горячие клавиши сейчас доступны:
 developerMode
@@ -97,6 +99,8 @@ renderPlaySurface
 renderGeometry
 setTeleportPoint
 teleport
+ressurect 
+hud
 
 
 --------------------------------------------------------------------
