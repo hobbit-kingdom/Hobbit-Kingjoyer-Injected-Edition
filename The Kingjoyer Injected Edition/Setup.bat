@@ -3,7 +3,6 @@ setlocal
 
 :: Set paths for the files and icon
 set "scriptPath=%~dp0The Hobbit Kingjoyer Edition.bat"
-set "dxwndPath=%~dp0DxWnd\dxwnd.exe"
 set "iconPath=%~dp0Meridian.ico"
 
 :: Set desktop path for The Hobbit shortcut
@@ -12,10 +11,7 @@ set "desktop=%USERPROFILE%\Desktop"
 :: Create a shortcut for The Hobbit Kingjoyer Edition.bat on the desktop with a custom icon
 call :createShortcut "%scriptPath%" "%desktop%\The Hobbit Kingjoyer Edition.lnk" "%iconPath%"
 
-:: Create a shortcut for dxwnd.exe in the same folder as the batch script (without custom icon)
-call :createShortcut "%dxwndPath%" "%~dp0dxwnd.lnk"
-
-echo Shortcuts created successfully.
+echo Shortcut created successfully.
 pause
 goto :eof
 

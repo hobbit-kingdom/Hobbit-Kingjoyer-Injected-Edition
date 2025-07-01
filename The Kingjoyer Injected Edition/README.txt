@@ -1,5 +1,5 @@
 ENG:
-Please make sure you are using Unpacked Edition of The Hobbit so skinchanger works as expected. 
+Please make sure you are using Unpacked Edition of The Hobbit so skinchanger works as expected.
 You can get it here: https://github.com/hobbit-kingdom/hobbit-versions/releases
 
 Otherwise you can proceed with Clean Version of The Hobbit. 
@@ -10,10 +10,8 @@ open file location.
 
 After that simply run Setup.bat and you will see a new shortcut appear on your desktop. Enjoy!
 
-If your screen resolution is different than 1920x1080, then go to dxwnd folder
-and then run dxwnd.exe with admin rights. After that right click on The Hobbit icon and select modify.
-
-At the bottom you will see the screen resolution change it accordingly to your screen. 
+Also I highly recommend right clicking on the Meridian.exe, go to properties and inside the Compatibility tab 
+put a tick on "Disable fullscreen optimizations".
 
 If you want to change some keybinds open the file called keybinds.ini and change them there.
 
@@ -63,11 +61,8 @@ RUS:
 
 После этого просто запустите Setup.bat, и вы увидите новый ярлык на рабочем столе. Наслаждайтесь!
 
-Если разрешение вашего экрана отличается от 1920x1080, то перейдите в папку dxwnd
-и запустите dxwnd.exe с правами администратора. После этого щелкните правой кнопкой мыши по значку 
-The Hobbit и выберите «Изменить».
-
-Внизу вы увидите, как разрешение экрана изменится в соответствии с вашим экраном.
+Дополнительно, я рекомендую нажать правой кнопкой мыши на Meridian.exe, перейти к свойствам и внутри вкладки Совместимость
+поставить галочку на «Отключить оптимизации полного экрана».
 
 Если вы хотите изменить некоторые сочетания клавиш, откройте файл keybinds.ini и измените их там.
 
@@ -104,8 +99,6 @@ hud
 
 
 --------------------------------------------------------------------
-
-DxWnd was downloaded from here: https://sourceforge.net/projects/dxwnd/
 
 Hobbit Technical Chat: discord.gg/invite/RMV7haPMkh
 
