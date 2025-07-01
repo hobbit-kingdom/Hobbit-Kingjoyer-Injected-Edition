@@ -241,6 +241,18 @@ void DrawSettings()
 
 	return;
 }
+typedef HRESULT(APIENTRY* ResetFn)(LPDIRECT3DDEVICE9 pDevice, D3DPRESENT_PARAMETERS* pPresentationParameters);
+ResetFn reset_original = nullptr;
+
+
+HRESULT WINAPI hkReset(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS* pp)
+{
+	ImGui_ImplDX9_InvalidateDeviceObjects();
+	auto hr = reset_original(pDevice, pp);
+	ImGui_ImplDX9_CreateDeviceObjects();
+	return hr;
+}
+
 
 long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
@@ -263,6 +275,9 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 	if (gui::drawSettings) DrawSettings();
 
+	IDirect3DStateBlock9* stateBlock = nullptr;
+	pDevice->CreateStateBlock(D3DSBT_ALL, &stateBlock);
+
 	if (openMenu)
 	{
 		ImGui_ImplDX9_NewFrame();
@@ -277,6 +292,11 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 		pDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
 
 		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+	}
+
+	if (stateBlock) {
+		stateBlock->Apply();
+		stateBlock->Release();
 	}
 
 	return oEndScene(pDevice);
@@ -319,7 +339,10 @@ int mainThread()
 {
 	if (kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success)
 	{
+		reset_original = (ResetFn)kiero::getMethodsTable()[16];
+
 		kiero::bind(42, (void**)&oEndScene, hkEndScene);
+		kiero::bind(16, (void**)&reset_original, hkReset);
 		window = GetProcessWindow();
 		oWndProc = (WNDPROC)SetWindowLongPtr(window, GWL_WNDPROC, (LONG_PTR)WndProc);
 	}
