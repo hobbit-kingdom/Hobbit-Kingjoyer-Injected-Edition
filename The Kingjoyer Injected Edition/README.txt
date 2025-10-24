@@ -10,9 +10,6 @@ open file location.
 
 After that simply run Setup.bat and you will see a new shortcut appear on your desktop. Enjoy!
 
-Also I highly recommend right clicking on the Meridian.exe, go to properties and inside the Compatibility tab 
-put a tick on "Disable fullscreen optimizations".
-
 If you want to change some keybinds open the file called keybinds.ini and change them there.
 
 To OPEN THE KINGJOYER press R on your keyboard while in the game. 
@@ -60,9 +57,6 @@ RUS:
 открыть местоположение файла.
 
 После этого просто запустите Setup.bat, и вы увидите новый ярлык на рабочем столе. Наслаждайтесь!
-
-Дополнительно, я рекомендую нажать правой кнопкой мыши на Meridian.exe, перейти к свойствам и внутри вкладки Совместимость
-поставить галочку на «Отключить оптимизации полного экрана».
 
 Если вы хотите изменить некоторые сочетания клавиш, откройте файл keybinds.ini и измените их там.
 

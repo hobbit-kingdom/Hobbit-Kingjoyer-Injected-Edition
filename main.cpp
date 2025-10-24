@@ -229,7 +229,13 @@ void DrawPressedKey()
 void DrawSettings()
 {
 	int posX = windowWidth - 100;
+
 	int posY = 200;
+
+	DrawCustomText((std::to_string(posX)).c_str(), posX, posY);
+	posY += 32;
+	DrawCustomText((std::to_string(posY)).c_str(), posX, posY);
+	posY += 32;
 	for (auto setting : settings)
 	{
 		if (setting.second)
@@ -329,8 +335,8 @@ HWND GetProcessWindow()
 
 	RECT size;
 	GetWindowRect(window, &size);
-	windowWidth = size.right - size.left;
-	windowHeight = size.bottom - size.top;
+	windowWidth = 1920;
+	windowHeight = 1080;
 
 	return window;
 }
