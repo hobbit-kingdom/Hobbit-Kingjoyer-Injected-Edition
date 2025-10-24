@@ -127,6 +127,18 @@ void functions::renderHud() noexcept {
 	change_1Byte_hobbit((LPVOID)0x0075EB7C, 0x00, 0x01);
 }
 
+void functions::renderCameras() noexcept {
+	change_1Byte_hobbit((LPVOID)0x00777B74, 0x00, 0x01);
+}
+
+void functions::renderCameraInfluencers() noexcept {
+	change_1Byte_hobbit((LPVOID)0x00777B78, 0x00, 0x01);
+}
+
+void functions::renderCameraModifiers() noexcept {
+	change_1Byte_hobbit((LPVOID)0x00777B7C, 0x00, 0x01);
+}
+
 void functions::increaseFOV() noexcept {
 	plusA_float_hobbit((LPVOID)0x00772BF0, +0.1); //функция приближения камеры на 0.1
 }

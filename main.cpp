@@ -105,6 +105,9 @@ void loadHotkeysFromConfig() {
 	hotkeys["renderPlaySurface"] = mapKey(reader.Get("Hotkeys", "renderPlaySurface", "NUMPAD5"));
 	hotkeys["renderGeometry"] = mapKey(reader.Get("Hotkeys", "renderGeometry", "PERIOD"));
 	hotkeys["renderHud"] = mapKey(reader.Get("Hotkeys", "renderHud", "H"));
+	hotkeys["renderCameras"] = mapKey(reader.Get("Hotkeys", "renderCameras", ""));
+	hotkeys["renderCameraInfluencers"] = mapKey(reader.Get("Hotkeys", "renderCameraInfluencers", ""));
+	hotkeys["renderCameraModifiers"] = mapKey(reader.Get("Hotkeys", "renderCameraModifiers", ""));
 	hotkeys["invulBilbo"] = mapKey(reader.Get("Hotkeys", "invulBilbo", "V"));
 	hotkeys["stamina"] = mapKey(reader.Get("Hotkeys", "stamina", ""));
 	hotkeys["stones"] = mapKey(reader.Get("Hotkeys", "stones", ""));
@@ -114,8 +117,8 @@ void loadHotkeysFromConfig() {
 	hotkeys["sliding_wall"] = mapKey(reader.Get("Hotkeys", "sliding_wall", ""));
 	hotkeys["finish_game"] = mapKey(reader.Get("Hotkeys", "finish_game", ""));
 	hotkeys["finish_demo"] = mapKey(reader.Get("Hotkeys", "finish_demo", ""));
-	hotkeys["slide"] = mapKey(reader.Get("Hotkeys", "slide", "J"));
-	hotkeys["lock_animation"] = mapKey(reader.Get("Hotkeys", "lock_animation", "R"));
+	hotkeys["slide"] = mapKey(reader.Get("Hotkeys", "slide", ""));
+	hotkeys["lock_animation"] = mapKey(reader.Get("Hotkeys", "lock_animation", ""));
 	hotkeys["chesttimer"] = mapKey(reader.Get("Hotkeys", "chesttimer", ""));
 
 	//FOV
@@ -154,6 +157,9 @@ void keybindings()
 	if (GetAsyncKeyState(hotkeys["renderPushBoxes"]) & 1) functions::renderPushBoxes();
 	if (GetAsyncKeyState(hotkeys["renderRigidInstances"]) & 1) functions::renderRigidInstances();
 	if (GetAsyncKeyState(hotkeys["renderPlaySurface"]) & 1) functions::renderPlaySurface();
+	if (GetAsyncKeyState(hotkeys["renderCameras"]) & 1) functions::renderCameras();
+	if (GetAsyncKeyState(hotkeys["renderCameraModifiers"]) & 1) functions::renderCameraModifiers();
+	if (GetAsyncKeyState(hotkeys["renderCameraInfluencers"]) & 1) functions::renderCameraInfluencers();
 
 	if (GetAsyncKeyState(hotkeys["renderGeometry"]) & 1) functions::renderGeometry();
 	if (GetAsyncKeyState(hotkeys["renderHud"]) & 1) functions::renderHud();

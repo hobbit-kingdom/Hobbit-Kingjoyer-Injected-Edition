@@ -351,6 +351,9 @@ bool renderRigidInstances = true;
 bool renderPlaySurface = true;
 bool renderGeometry = false;
 bool hud = true;
+bool renderCameraInfluencers = false;
+bool renderCameras = false;
+bool renderCameraModifiers = false;
 
 bool invulBilbo = false;
 bool stamina = false;
@@ -551,6 +554,15 @@ void gui::Render() noexcept
 			}
 			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "HUD" : (const char*)u8"HUD", &hud)) {
 				functions::renderHud();
+			}
+			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Camera Influencers" : (const char*)u8"Переопределения камер", &renderCameraInfluencers)) {
+				functions::renderCameraInfluencers();
+			}
+			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Cameras" : (const char*)u8"Камеры", &renderCameras)) {
+				functions::renderCameras();
+			}
+			ImGui::TableNextColumn(); if (ImGui::Checkbox(lang ? "Camera Modifiers" : (const char*)u8"Модификаторы камер", &renderCameraModifiers)) {
+				functions::renderCameraModifiers();
 			}
 			ImGui::EndTable();
 		}

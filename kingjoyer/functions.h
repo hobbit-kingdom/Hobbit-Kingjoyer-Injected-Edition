@@ -55,6 +55,9 @@ namespace functions
 	void renderPlaySurface() noexcept;
 	void renderGeometry() noexcept;
 	void renderHud() noexcept;
+	void renderCameras() noexcept;
+	void renderCameraInfluencers() noexcept;
+	void renderCameraModifiers() noexcept;
 	void increaseFOV() noexcept;
 	void decreaseFOV() noexcept;
 
