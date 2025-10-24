@@ -130,6 +130,7 @@ void loadHotkeysFromConfig() {
 	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
 
 	hotkeys["ressurect"] = mapKey(reader.Get("Hotkeys", "ressurect", "X"));
+	hotkeys["endLevel"] = mapKey(reader.Get("Hotkeys", "endLevel", "0"));
 }
 
 void keybindings()
@@ -171,6 +172,7 @@ void keybindings()
 	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();
 
 	if (GetAsyncKeyState(hotkeys["ressurect"]) & 1) functions::ressurect();
+	if (GetAsyncKeyState(hotkeys["endLevel"]) & 1) functions::endLevel();
 
 }
 

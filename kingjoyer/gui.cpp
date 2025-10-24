@@ -608,6 +608,12 @@ void gui::Render() noexcept
 		}
 
 		ImGui::Text("");
+
+		if (ImGui::Button(lang ? "End level" : (const char*)u8"Закончить уровень")) {
+			functions::endLevel();
+		}
+
+		ImGui::Text("");
 		ImGui::Text(lang ? "Cheats" : (const char*)u8"Читы");
 		ImGui::Separator();
 

@@ -151,3 +151,7 @@ void functions::ressurect() noexcept {
 	LPDWORD ressurect = ukazatel_hobbit((LPDWORD)0x0075BA3C) + 441;
 	change_1Byte_hobbit(ressurect, 0x0, 0x1);
 }
+
+void functions::endLevel() noexcept {
+	change_1Byte_hobbit((LPVOID)0x00760354, 0x00, 0x01);
+}
