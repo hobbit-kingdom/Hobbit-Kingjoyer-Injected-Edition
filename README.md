@@ -43,7 +43,7 @@ Go to the [releases](https://github.com/hobbit-kingdom/Hobbit-Kingjoyer-Injected
 
 # Video Showcase
 
-[![kinjoyer trainer v2](https://github.com/user-attachments/assets/96f4e212-3c03-4437-ae34-bad5065feaad)](https://www.youtube.com/watch?v=h9z-QWnbRCc)
+[![kinjoyer trainer v2](https://github.com/user-attachments/assets/b023d338-19f3-4057-91ed-7ca52aa498dd)](https://www.youtube.com/watch?v=4Yf1T2Yr1dc)
 
 # For Developers
 
