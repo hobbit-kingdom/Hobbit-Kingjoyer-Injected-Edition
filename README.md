@@ -41,6 +41,9 @@ Go to the [releases](https://github.com/hobbit-kingdom/Hobbit-Kingjoyer-Injected
     
   - **Skinchanger**: ability to change Bilbos Skin Texture and Props models/textures (Stick, Stone, Sword)
 
+# Video Showcase
+
+[![kinjoyer trainer v2](https://github.com/user-attachments/assets/96f4e212-3c03-4437-ae34-bad5065feaad)](https://www.youtube.com/watch?v=h9z-QWnbRCc)
 
 # For Developers
 
