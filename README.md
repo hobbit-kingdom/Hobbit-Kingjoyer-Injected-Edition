@@ -2,6 +2,8 @@
 
 A trainer for The Hobbit (2003) game written in C++ and ImGui. Modifies the process memory to achieve developer or completely new functionality.
 
+Download here: https://github.com/hobbit-kingdom/Hobbit-Kingjoyer-Injected-Edition/releases
+
 ## Usage
 
 Press **R** while inside the game to open the Trainer overlay. You can configure your personal keybinds inside the .ini file.
