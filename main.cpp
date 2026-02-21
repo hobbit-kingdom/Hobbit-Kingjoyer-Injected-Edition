@@ -11,6 +11,7 @@ int windowWidth;
 WNDPROC oWndProc;
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT _stdcall WndProc(const HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 void InitImGui(LPDIRECT3DDEVICE9 pDevice) {
 	ImGui::CreateContext();
@@ -272,6 +273,16 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 {
 	if (!init)
 	{
+		if (!window) {
+			D3DDEVICE_CREATION_PARAMETERS params;
+			if (SUCCEEDED(pDevice->GetCreationParameters(&params))) {
+				window = params.hFocusWindow;
+				if (!oWndProc && window) {
+					oWndProc = (WNDPROC)SetWindowLongPtr(window, GWL_WNDPROC, (LONG_PTR)WndProc);
+				}
+			}
+		}
+
 		InitImGui(pDevice);
 		loadHotkeysFromConfig();
 
@@ -292,19 +303,22 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 	IDirect3DStateBlock9* stateBlock = nullptr;
 	pDevice->CreateStateBlock(D3DSBT_ALL, &stateBlock);
 
+	ImGui_ImplDX9_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+
 	if (openMenu)
 	{
-		ImGui_ImplDX9_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-
 		gui::Render();
+	}
 
-		ImGui::EndFrame();
-		ImGui::Render();
+	ImGui::EndFrame();
+	ImGui::Render();
 
+	if (openMenu)
+	{
 		pDevice->SetRenderState(D3DRS_COLORWRITEENABLE, 15);
-
+		pDevice->SetRenderState(D3DRS_SRGBWRITEENABLE, FALSE); // Prevent D3D9 color distortion
 		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
 	}
 
@@ -319,10 +333,13 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 LRESULT _stdcall WndProc(const HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	if (true && ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
+	if (openMenu && ImGui_ImplWin32_WndProcHandler(hwnd, uMsg, wParam, lParam))
 		return true;
 
-	return CallWindowProc(oWndProc, hwnd, uMsg, wParam, lParam);
+	if (oWndProc)
+		return CallWindowProc(oWndProc, hwnd, uMsg, wParam, lParam);
+	else
+		return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 BOOL CALLBACK EnumWindowsCallBack(HWND handle, LPARAM lParam)
@@ -333,18 +350,36 @@ BOOL CALLBACK EnumWindowsCallBack(HWND handle, LPARAM lParam)
 	if (GetCurrentProcessId() != procID)
 		return TRUE;
 
-	window = handle;
-	return false;
+	HWND parentWindow = GetWindow(handle, GW_OWNER);
+	if (parentWindow != NULL)
+		return TRUE;
+
+	if (GetWindow(handle, GW_OWNER) == (HWND)0 && IsWindowVisible(handle))
+	{
+		window = handle;
+		return FALSE;
+	}
+	return TRUE;
 }
 
 HWND GetProcessWindow()
 {
 	window = FindWindowA("Hobbit Window Class", NULL);
+	if (!window)
+		EnumWindows(EnumWindowsCallBack, 0);
 
-	RECT size;
-	GetWindowRect(window, &size);
-	windowWidth = 1920;
-	windowHeight = 1080;
+	if (window)
+	{
+		RECT size;
+		GetWindowRect(window, &size);
+		windowWidth = size.right - size.left;
+		windowHeight = size.bottom - size.top;
+	}
+	else
+	{
+		windowWidth = 1920;
+		windowHeight = 1080;
+	}
 
 	return window;
 }
@@ -353,12 +388,14 @@ int mainThread()
 {
 	if (kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success)
 	{
+		window = GetProcessWindow();
+		if (window)
+			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWL_WNDPROC, (LONG_PTR)WndProc);
+
 		reset_original = (ResetFn)kiero::getMethodsTable()[16];
 
 		kiero::bind(42, (void**)&oEndScene, hkEndScene);
 		kiero::bind(16, (void**)&reset_original, hkReset);
-		window = GetProcessWindow();
-		oWndProc = (WNDPROC)SetWindowLongPtr(window, GWL_WNDPROC, (LONG_PTR)WndProc);
 	}
 
 	return 0;

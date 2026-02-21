@@ -62,4 +62,5 @@ namespace functions
 	void decreaseFOV() noexcept;
 
 	void ressurect() noexcept;
+	void endLevel() noexcept;
 }
