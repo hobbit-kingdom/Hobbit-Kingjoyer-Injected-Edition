@@ -1,4 +1,6 @@
-﻿#include "gui.h"
+﻿#define _CRT_SECURE_NO_WARNINGS
+
+#include "gui.h"
 #include "byte_functions.h"
 #include "Randommod.h"
 #include "PickupAll.h"
@@ -445,8 +447,193 @@ int ringGreen = 0x18;
 
 ImVec4 color = ImVec4(ringRed / 255.0f, ringGreen / 255.0f, ringBlue / 255.0f, 1.0f);
 
+static std::vector<std::string> objects;
 
-bool huinya = false;
+uint64_t getObjectGUID(void *pEntity)
+{
+	uint64_t GUID = 0;
+			
+	try
+	{
+		GUID = read_value_hobbit<uint64_t>(LPBYTE(pEntity) + 0x8);
+	}
+	catch(...)
+	{
+		GUID = 0;
+	}
+
+	return GUID;
+}
+
+char *getObjectName(void *pEntity, char out_name[32])
+{
+	try
+	{
+		char *name_ptr = read_value_hobbit<char *>(LPBYTE(pEntity) + 0xA0);
+		if(name_ptr) {
+			strncpy(out_name, name_ptr, sizeof(out_name));
+			out_name[sizeof(out_name)-1] = '\0';
+		}
+	}
+	catch(...)
+	{
+		strcpy(out_name, "ERR");
+	}
+
+	return out_name;
+}
+
+void updateObjectList()
+{
+	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
+	const LPVOID objects_count_offs = LPVOID(0x0076F660); 
+	const SIZE_T OBJ_RECORD_SIZE = 0x14;
+
+	void *objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
+	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
+
+	objects.clear();
+
+	for(size_t i = 0; i < objects_cnt; i++) {
+		void *pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
+		void *pEntity = *((void**)pRecord);
+			
+		if(pEntity) {
+			uint64_t GUID = 0;
+			char nam[32] = "\"\"";
+			char str[256];
+
+			GUID = getObjectGUID(pEntity);
+			getObjectName(pEntity, nam);
+
+			sprintf_s(str, "%p - %08X_%08X - %s", 
+				pEntity, 
+				uint32_t((GUID >> 32) & 0xFFFFFFFF),
+				uint32_t(GUID & 0xFFFFFFFF),
+				nam
+			);
+
+			objects.push_back(str);
+		}
+	}
+}
+
+void *getObjectByGUID(uint64_t guid)
+{
+	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
+	const LPVOID objects_count_offs = LPVOID(0x0076F660); 
+	const SIZE_T OBJ_RECORD_SIZE = 0x14;
+
+	void *objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
+	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
+
+	for(size_t i = 0; i < objects_cnt; i++) {
+		void *pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
+		void *pEntity = *((void**)pRecord);
+			
+		if(pEntity && getObjectGUID(pEntity) == guid) {
+			return pEntity;
+		}
+	}
+
+	return NULL;
+}
+
+static void showObjectList(void)
+{
+	if (ImGui::CollapsingHeader("Object List"))
+	{
+		if(ImGui::Button("Refresh"))
+			updateObjectList();
+
+		if(ImGui::BeginCombo("ObjectList", "")) 
+		{
+			for(size_t i = 0; i < objects.size(); i++)
+				ImGui::Selectable(objects[i].c_str());
+			ImGui::EndCombo();
+		}
+
+		ImGui::Text("Objects Total: %u", objects.size());
+	}
+}
+
+void *pNPC;
+char anim_result[32] = "\"\"";
+
+class anim_track_controller
+{
+	int dummy;
+};
+typedef void (__thiscall anim_track_controller::*SetAnimPROCPTR)(int anim_id, float blend_time);
+
+static void setNPCAnim(void *pNPC, int anim)
+{
+	uint32_t animAdd1 = (uint32_t)pNPC;
+	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
+	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
+	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
+	if (animAdd4 == 0) 
+	{
+		strcpy(anim_result, "ERROR");
+	} else {
+		anim_track_controller *pController = (anim_track_controller*)animAdd4;
+
+		uint32_t _SetAnimPTR = 0x5434B0;
+		SetAnimPROCPTR SetAnimPTR;
+		memcpy(&SetAnimPTR, &_SetAnimPTR, 4);
+
+		(pController->*SetAnimPTR)(anim, 1.f);
+
+		/*
+		uint32_t animationAddress = 0x8 + animAdd4;
+		int *pI = (int*)animationAddress;
+
+		*pI = anim;
+		*/
+
+		strcpy(anim_result, "ANIM OK");
+	}
+}
+
+static char _NPC_Status[128] = "NOSTATUS";
+static char _NPC_Guid[128] = "0D8AD910_E8851002";
+static char _NPC_anim[128] = "1";
+
+static void showNPCTest(void)
+{
+	if (ImGui::CollapsingHeader("NPC Test"))
+	{
+		ImGui::Text(_NPC_Status);
+
+		ImGui::InputText("NPC Guild:", _NPC_Guid, sizeof(_NPC_Guid));
+
+		if(ImGui::Button("Query NPC")) {
+			uint32_t guid_high;
+			uint32_t guid_low;
+
+			if(sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
+				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
+				if(pNPC)
+					strcpy_s(_NPC_Status, "NPC OK");
+				else
+					strcpy_s(_NPC_Status, "NPC Not found");
+			} else {
+				strcpy_s(_NPC_Status, "Invalid GUID");
+			}
+		}
+
+		ImGui::Text("");
+
+		ImGui::InputText("Anim ID:", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
+		int anim_id = atoi(_NPC_anim);
+
+		if(ImGui::Button("Do Set Anim") && pNPC) {
+			setNPCAnim(pNPC, anim_id);
+		}
+	}
+}
+
+static bool g_bDemoWindow = false;
 
 void gui::Render() noexcept
 {
@@ -463,6 +650,11 @@ void gui::Render() noexcept
 	ImGui::Text("");
 
 	if (ImGui::Button(!lang ? "Change Language" : (const char*)u8"Поменять язык")) lang = !lang;
+
+	if (ImGui::Button("Demo Window"))
+		g_bDemoWindow = true;
+	if(g_bDemoWindow)
+		ImGui::ShowDemoWindow(&g_bDemoWindow);
 
 	ImGui::Separator();
 	ImGui::Text("");
@@ -1300,6 +1492,9 @@ void gui::Render() noexcept
 	}
 	if (stones == true)
 		change_float_hobbit((LPVOID)0x0075BDB4, 10);
+
+	showObjectList();
+	showNPCTest();
 
 	ImGui::Text("");
 	ImGui::Text("");

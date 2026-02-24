@@ -7,6 +7,9 @@
 
 HANDLE read_process_hobbit()
 {
+#ifdef KINGJOYER_DLL
+	return GetCurrentProcess();
+#else
 	DWORD pid = 0;     //переменная айди процесса
 	HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	PROCESSENTRY32 pe32;
@@ -23,6 +26,7 @@ HANDLE read_process_hobbit()
 	DWORD Prava = PROCESS_ALL_ACCESS; //это права доступа
 	HANDLE Process = OpenProcess(Prava, FALSE, pid); //числовое значение - это айди процесса в диспетчере задач
 	return Process;
+#endif
 }
 
 DWORD GetProcessID(const wchar_t* processName) {

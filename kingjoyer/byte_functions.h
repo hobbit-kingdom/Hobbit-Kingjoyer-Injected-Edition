@@ -22,3 +22,17 @@ LPDWORD ukazatel_hobbit(LPVOID Address) noexcept;
 HANDLE read_process_hobbit() noexcept;
 uintptr_t GetModuleBaseAddress(DWORD pid, const wchar_t* moduleName) noexcept;
 DWORD GetProcessID(const wchar_t* processName) noexcept;
+
+template <typename T>
+T read_value_hobbit(LPVOID Address) {
+	HANDLE Process = read_process_hobbit();
+	T value;
+
+	if (!ReadProcessMemory(Process, Address, &value, sizeof(T), NULL)) {
+		CloseHandle(Process);
+		return T();
+	}
+
+	CloseHandle(Process);
+	return value;
+}
