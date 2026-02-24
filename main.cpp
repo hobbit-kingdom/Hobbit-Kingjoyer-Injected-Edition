@@ -1,5 +1,6 @@
-#include "includes.h"
+#define _CRT_SECURE_NO_WARNINGS
 
+#include "includes.h"
 
 typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
@@ -131,7 +132,7 @@ void loadHotkeysFromConfig() {
 	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
 
 	hotkeys["ressurect"] = mapKey(reader.Get("Hotkeys", "ressurect", "X"));
-	hotkeys["endLevel"] = mapKey(reader.Get("Hotkeys", "endLevel", "0"));
+	// hotkeys["endLevel"] = mapKey(reader.Get("Hotkeys", "endLevel", "0"));
 }
 
 void keybindings()
@@ -173,7 +174,7 @@ void keybindings()
 	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();
 
 	if (GetAsyncKeyState(hotkeys["ressurect"]) & 1) functions::ressurect();
-	if (GetAsyncKeyState(hotkeys["endLevel"]) & 1) functions::endLevel();
+	// if (GetAsyncKeyState(hotkeys["endLevel"]) & 1) functions::endLevel();
 
 }
 
@@ -386,6 +387,10 @@ HWND GetProcessWindow()
 
 int mainThread()
 {
+	AllocConsole();
+	freopen("CONOUT$", "w",
+		stdout);
+
 	if (kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success)
 	{
 		window = GetProcessWindow();
