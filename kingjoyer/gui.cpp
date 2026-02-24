@@ -560,11 +560,52 @@ static void showObjectList(void)
 void *pNPC;
 char anim_result[32] = "\"\"";
 
+// exact size is unknown for now
+struct rhandle
+{
+	int something;
+};
+
 class anim_track_controller
+{
+	public:
+	virtual ~anim_track_controller(void); // create the VMT
+
+	rhandle m_hAnimGroup; // + 0x04
+};
+typedef void (__thiscall anim_track_controller::*SetAnimPROCPTR)(int anim_id, float blend_time);
+
+class rsc_mgr
 {
 	int dummy;
 };
-typedef void (__thiscall anim_track_controller::*SetAnimPROCPTR)(int anim_id, float blend_time);
+// loads resource if it's not loaded yet
+typedef void* (__thiscall rsc_mgr::*LockRHandlePROCPTR)(rhandle *_rhandle);
+// some other operation on rhandle, always follows LockRHandle
+typedef int (__thiscall rsc_mgr::*unkhandlePROCPTR)(rhandle *_rhandle);
+
+struct anim_data
+{
+	char name[32];
+	char data[48];
+};
+
+struct anim_group
+{
+	char name[60];
+	void *ptr1;
+	int version;
+	int num_frames;
+	int num_unk_jf;
+
+	uint32_t bones_count;
+	void *bones_ptr;
+
+	uint32_t anims_count;
+	anim_data *anims_ptr;
+
+	// ...
+};
 
 static void setNPCAnim(void *pNPC, int anim)
 {
@@ -595,9 +636,46 @@ static void setNPCAnim(void *pNPC, int anim)
 	}
 }
 
+static void getNPCAnimList(void *pNPC, std::vector<std::string>& out_vec)
+{
+	uint32_t animAdd1 = (uint32_t)pNPC;
+	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
+	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
+	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
+	if (animAdd4 == 0) 
+	{
+		strcpy(anim_result, "ERROR");
+	} else {
+		anim_track_controller *pController = (anim_track_controller*)animAdd4;
+
+		uint32_t _LockRHandlePTR = 0x549470;
+		LockRHandlePROCPTR LockRHandlePTR;
+		memcpy(&LockRHandlePTR, &_LockRHandlePTR, 4);
+
+		uint32_t _unkhandlePTR = 0x549580;
+		unkhandlePROCPTR unkhandlePTR;
+		memcpy(&unkhandlePTR, &_unkhandlePTR, 4);
+
+		rsc_mgr* g_RscMgr = (rsc_mgr*)0x76C0D0;
+
+		anim_group *pGroup = (anim_group*)(g_RscMgr->*LockRHandlePTR)(&pController->m_hAnimGroup);
+		(g_RscMgr->*unkhandlePTR)(&pController->m_hAnimGroup);
+
+		for(uint32_t i = 0; i < pGroup->anims_count; i++) {
+			char str[128];
+			sprintf(str, "%d : %s", i, pGroup->anims_ptr[i].name);
+			out_vec.push_back(str);
+		}
+
+		strcpy(anim_result, "ANIM OK");
+	}
+}
+
 static char _NPC_Status[128] = "NOSTATUS";
 static char _NPC_Guid[128] = "0D8AD910_E8851002";
 static char _NPC_anim[128] = "1";
+
+std::vector<std::string> _NPC_anim_list;
 
 static void showNPCTest(void)
 {
@@ -613,9 +691,10 @@ static void showNPCTest(void)
 
 			if(sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
 				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
-				if(pNPC)
+				if(pNPC) {
 					strcpy_s(_NPC_Status, "NPC OK");
-				else
+					getNPCAnimList(pNPC, _NPC_anim_list);
+				} else
 					strcpy_s(_NPC_Status, "NPC Not found");
 			} else {
 				strcpy_s(_NPC_Status, "Invalid GUID");
@@ -629,6 +708,14 @@ static void showNPCTest(void)
 
 		if(ImGui::Button("Do Set Anim") && pNPC) {
 			setNPCAnim(pNPC, anim_id);
+		}
+
+		ImGui::Text("");
+
+		if(ImGui::BeginListBox("Anims:")) {
+			for(const std::string& str : _NPC_anim_list)
+				ImGui::Selectable(str.c_str());
+			ImGui::EndListBox();
 		}
 	}
 }
