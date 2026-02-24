@@ -387,9 +387,9 @@ HWND GetProcessWindow()
 
 int mainThread()
 {
-	AllocConsole();
-	freopen("CONOUT$", "w",
-		stdout);
+	//AllocConsole();
+	//freopen("CONOUT$", "w",
+	//	stdout);
 
 	if (kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success)
 	{
