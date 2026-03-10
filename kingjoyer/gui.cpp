@@ -10,6 +10,8 @@
 #include "../imgui/imgui_impl_dx9.h"
 #include "../imgui/imgui_impl_win32.h"
 
+#include "../meridian/meridian.hpp"
+
 #include <iostream>
 #include "string"
 #include <chrono>
@@ -465,6 +467,22 @@ uint64_t getObjectGUID(void *pEntity)
 	return GUID;
 }
 
+uint32_t getObjectType(void *pEntity)
+{
+	uint32_t Type = 0;
+			
+	try
+	{
+		Type = read_value_hobbit<uint8_t>(LPBYTE(pEntity) + 0x7C);
+	}
+	catch(...)
+	{
+		Type = 0;
+	}
+
+	return Type;
+}
+
 char *getObjectName(void *pEntity, char out_name[32])
 {
 	try
@@ -506,11 +524,12 @@ void updateObjectList()
 			GUID = getObjectGUID(pEntity);
 			getObjectName(pEntity, nam);
 
-			sprintf_s(str, "%p - %08X_%08X - %s", 
+			sprintf_s(str, "%p - %08X_%08X - %s - %d", 
 				pEntity, 
 				uint32_t((GUID >> 32) & 0xFFFFFFFF),
 				uint32_t(GUID & 0xFFFFFFFF),
-				nam
+				nam,
+				getObjectType(pEntity)
 			);
 
 			objects.push_back(str);
@@ -716,6 +735,94 @@ static void showNPCTest(void)
 			for(const std::string& str : _NPC_anim_list)
 				ImGui::Selectable(str.c_str());
 			ImGui::EndListBox();
+		}
+	}
+}
+
+static guid spawned_guid;
+
+void getBilboPos(vector3 &outPos)
+{
+	DWORD ukazatel =  read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
+	outPos.X = read_value_hobbit<float>((LPDWORD)ukazatel + 5);
+	outPos.Y = read_value_hobbit<float>((LPDWORD)ukazatel + 6);
+	outPos.Z = read_value_hobbit<float>((LPDWORD)ukazatel + 7);//функция установки точки телепортации
+}
+
+static void showSpawnTest_(void)
+{
+	if (ImGui::CollapsingHeader("Spawn Test"))
+	{
+		uint32_t guid_high = spawned_guid.Guid >> 32;
+		uint32_t guid_low = spawned_guid.Guid;
+		char str[32];
+
+		sprintf(str, "%X_%X", guid_high, guid_low);
+
+		ImGui::Text("Spawned GUID: %s", str);
+
+		if(ImGui::Button("Do Spawn"))
+		{
+			spawned_guid = g_ObjMgr.CreateObject("Marker", guid());
+
+			static int nmarker = 0;
+			marker *pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
+			if(pMarker)
+			{
+				sprintf(str, "marker%d", nmarker++);
+
+				vector3 P; getBilboPos(P);
+				pMarker->Move(P,0);
+
+				pMarker->SetText(str);
+
+				//pMarker->SetObjSaveFlag(1);
+			}
+		}
+
+		static char i_text[32];
+		ImGui::InputText("SetText", i_text, 32);
+		if(ImGui::Button("Set Text")) 
+		{
+			marker *pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
+			if(pMarker)
+			{
+				pMarker->SetText(i_text);
+			}
+		}
+	}
+}
+
+static void showSpawnTest(void)
+{
+	if (ImGui::CollapsingHeader("Spawn Test"))
+	{
+		uint32_t guid_high = spawned_guid.Guid >> 32;
+		uint32_t guid_low = spawned_guid.Guid;
+		char str[32];
+
+		sprintf(str, "%X_%X", guid_high, guid_low);
+
+		ImGui::Text("Spawned GUID: %s", str);
+
+		if(ImGui::Button("Do Spawn"))
+		{
+			spawned_guid = g_ObjMgr.CreateObject("RigidInstance", guid());
+
+			object *pMarker = (object*)getObjectByGUID(spawned_guid.Guid);
+			if(pMarker)
+			{
+				{
+					bin_in BinIn{};
+					if(BinIn.OpenFile("./Templates/Test.export") && BinIn.ReadHeader() && BinIn.ReadFields())
+					{
+						pMarker->OnImport(BinIn);
+					}
+				}
+
+				vector3 P; getBilboPos(P);
+				pMarker->Move(P,0);
+			}
 		}
 	}
 }
@@ -1582,6 +1689,7 @@ void gui::Render() noexcept
 
 	showObjectList();
 	showNPCTest();
+	showSpawnTest();
 
 	ImGui::Text("");
 	ImGui::Text("");
