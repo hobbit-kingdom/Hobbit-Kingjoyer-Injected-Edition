@@ -451,15 +451,15 @@ ImVec4 color = ImVec4(ringRed / 255.0f, ringGreen / 255.0f, ringBlue / 255.0f, 1
 
 static std::vector<std::string> objects;
 
-uint64_t getObjectGUID(void *pEntity)
+uint64_t getObjectGUID(void* pEntity)
 {
 	uint64_t GUID = 0;
-			
+
 	try
 	{
 		GUID = read_value_hobbit<uint64_t>(LPBYTE(pEntity) + 0x8);
 	}
-	catch(...)
+	catch (...)
 	{
 		GUID = 0;
 	}
@@ -467,15 +467,15 @@ uint64_t getObjectGUID(void *pEntity)
 	return GUID;
 }
 
-uint32_t getObjectType(void *pEntity)
+uint32_t getObjectType(void* pEntity)
 {
 	uint32_t Type = 0;
-			
+
 	try
 	{
 		Type = read_value_hobbit<uint8_t>(LPBYTE(pEntity) + 0x7C);
 	}
-	catch(...)
+	catch (...)
 	{
 		Type = 0;
 	}
@@ -483,17 +483,17 @@ uint32_t getObjectType(void *pEntity)
 	return Type;
 }
 
-char *getObjectName(void *pEntity, char out_name[32])
+char* getObjectName(void* pEntity, char out_name[32])
 {
 	try
 	{
-		char *name_ptr = read_value_hobbit<char *>(LPBYTE(pEntity) + 0xA0);
-		if(name_ptr) {
+		char* name_ptr = read_value_hobbit<char*>(LPBYTE(pEntity) + 0xA0);
+		if (name_ptr) {
 			strncpy(out_name, name_ptr, sizeof(out_name));
-			out_name[sizeof(out_name)-1] = '\0';
+			out_name[sizeof(out_name) - 1] = '\0';
 		}
 	}
-	catch(...)
+	catch (...)
 	{
 		strcpy(out_name, "ERR");
 	}
@@ -504,19 +504,19 @@ char *getObjectName(void *pEntity, char out_name[32])
 void updateObjectList()
 {
 	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
-	const LPVOID objects_count_offs = LPVOID(0x0076F660); 
+	const LPVOID objects_count_offs = LPVOID(0x0076F660);
 	const SIZE_T OBJ_RECORD_SIZE = 0x14;
 
-	void *objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
+	void* objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
 	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
 
 	objects.clear();
 
-	for(size_t i = 0; i < objects_cnt; i++) {
-		void *pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
-		void *pEntity = *((void**)pRecord);
-			
-		if(pEntity) {
+	for (size_t i = 0; i < objects_cnt; i++) {
+		void* pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
+		void* pEntity = *((void**)pRecord);
+
+		if (pEntity) {
 			uint64_t GUID = 0;
 			char nam[32] = "\"\"";
 			char str[256];
@@ -524,8 +524,8 @@ void updateObjectList()
 			GUID = getObjectGUID(pEntity);
 			getObjectName(pEntity, nam);
 
-			sprintf_s(str, "%p - %08X_%08X - %s - %d", 
-				pEntity, 
+			sprintf_s(str, "%p - %08X_%08X - %s - %d",
+				pEntity,
 				uint32_t((GUID >> 32) & 0xFFFFFFFF),
 				uint32_t(GUID & 0xFFFFFFFF),
 				nam,
@@ -537,20 +537,20 @@ void updateObjectList()
 	}
 }
 
-void *getObjectByGUID(uint64_t guid)
+void* getObjectByGUID(uint64_t guid)
 {
 	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
-	const LPVOID objects_count_offs = LPVOID(0x0076F660); 
+	const LPVOID objects_count_offs = LPVOID(0x0076F660);
 	const SIZE_T OBJ_RECORD_SIZE = 0x14;
 
-	void *objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
+	void* objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
 	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
 
-	for(size_t i = 0; i < objects_cnt; i++) {
-		void *pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
-		void *pEntity = *((void**)pRecord);
-			
-		if(pEntity && getObjectGUID(pEntity) == guid) {
+	for (size_t i = 0; i < objects_cnt; i++) {
+		void* pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
+		void* pEntity = *((void**)pRecord);
+
+		if (pEntity && getObjectGUID(pEntity) == guid) {
 			return pEntity;
 		}
 	}
@@ -562,12 +562,12 @@ static void showObjectList(void)
 {
 	if (ImGui::CollapsingHeader("Object List"))
 	{
-		if(ImGui::Button("Refresh"))
+		if (ImGui::Button("Refresh"))
 			updateObjectList();
 
-		if(ImGui::BeginCombo("ObjectList", "")) 
+		if (ImGui::BeginCombo("ObjectList", ""))
 		{
-			for(size_t i = 0; i < objects.size(); i++)
+			for (size_t i = 0; i < objects.size(); i++)
 				ImGui::Selectable(objects[i].c_str());
 			ImGui::EndCombo();
 		}
@@ -576,7 +576,7 @@ static void showObjectList(void)
 	}
 }
 
-void *pNPC;
+void* pNPC;
 char anim_result[32] = "\"\"";
 
 // exact size is unknown for now
@@ -587,21 +587,21 @@ struct rhandle
 
 class anim_track_controller
 {
-	public:
+public:
 	virtual ~anim_track_controller(void); // create the VMT
 
 	rhandle m_hAnimGroup; // + 0x04
 };
-typedef void (__thiscall anim_track_controller::*SetAnimPROCPTR)(int anim_id, float blend_time);
+typedef void(__thiscall anim_track_controller::* SetAnimPROCPTR)(int anim_id, float blend_time);
 
 class rsc_mgr
 {
 	int dummy;
 };
 // loads resource if it's not loaded yet
-typedef void* (__thiscall rsc_mgr::*LockRHandlePROCPTR)(rhandle *_rhandle);
+typedef void* (__thiscall rsc_mgr::* LockRHandlePROCPTR)(rhandle* _rhandle);
 // some other operation on rhandle, always follows LockRHandle
-typedef int (__thiscall rsc_mgr::*unkhandlePROCPTR)(rhandle *_rhandle);
+typedef int(__thiscall rsc_mgr::* unkhandlePROCPTR)(rhandle* _rhandle);
 
 struct anim_data
 {
@@ -612,31 +612,32 @@ struct anim_data
 struct anim_group
 {
 	char name[60];
-	void *ptr1;
+	void* ptr1;
 	int version;
 	int num_frames;
 	int num_unk_jf;
 
 	uint32_t bones_count;
-	void *bones_ptr;
+	void* bones_ptr;
 
 	uint32_t anims_count;
-	anim_data *anims_ptr;
+	anim_data* anims_ptr;
 
 	// ...
 };
 
-static void setNPCAnim(void *pNPC, int anim)
+static void setNPCAnim(void* pNPC, int anim)
 {
 	uint32_t animAdd1 = (uint32_t)pNPC;
 	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
 	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
 	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
-	if (animAdd4 == 0) 
+	if (animAdd4 == 0)
 	{
 		strcpy(anim_result, "ERROR");
-	} else {
-		anim_track_controller *pController = (anim_track_controller*)animAdd4;
+	}
+	else {
+		anim_track_controller* pController = (anim_track_controller*)animAdd4;
 
 		uint32_t _SetAnimPTR = 0x5434B0;
 		SetAnimPROCPTR SetAnimPTR;
@@ -655,17 +656,18 @@ static void setNPCAnim(void *pNPC, int anim)
 	}
 }
 
-static void getNPCAnimList(void *pNPC, std::vector<std::string>& out_vec)
+static void getNPCAnimList(void* pNPC, std::vector<std::string>& out_vec)
 {
 	uint32_t animAdd1 = (uint32_t)pNPC;
 	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
 	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
 	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
-	if (animAdd4 == 0) 
+	if (animAdd4 == 0)
 	{
 		strcpy(anim_result, "ERROR");
-	} else {
-		anim_track_controller *pController = (anim_track_controller*)animAdd4;
+	}
+	else {
+		anim_track_controller* pController = (anim_track_controller*)animAdd4;
 
 		uint32_t _LockRHandlePTR = 0x549470;
 		LockRHandlePROCPTR LockRHandlePTR;
@@ -677,10 +679,10 @@ static void getNPCAnimList(void *pNPC, std::vector<std::string>& out_vec)
 
 		rsc_mgr* g_RscMgr = (rsc_mgr*)0x76C0D0;
 
-		anim_group *pGroup = (anim_group*)(g_RscMgr->*LockRHandlePTR)(&pController->m_hAnimGroup);
+		anim_group* pGroup = (anim_group*)(g_RscMgr->*LockRHandlePTR)(&pController->m_hAnimGroup);
 		(g_RscMgr->*unkhandlePTR)(&pController->m_hAnimGroup);
 
-		for(uint32_t i = 0; i < pGroup->anims_count; i++) {
+		for (uint32_t i = 0; i < pGroup->anims_count; i++) {
 			char str[128];
 			sprintf(str, "%d : %s", i, pGroup->anims_ptr[i].name);
 			out_vec.push_back(str);
@@ -704,18 +706,20 @@ static void showNPCTest(void)
 
 		ImGui::InputText("NPC Guild:", _NPC_Guid, sizeof(_NPC_Guid));
 
-		if(ImGui::Button("Query NPC")) {
+		if (ImGui::Button("Query NPC")) {
 			uint32_t guid_high;
 			uint32_t guid_low;
 
-			if(sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
+			if (sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
 				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
-				if(pNPC) {
+				if (pNPC) {
 					strcpy_s(_NPC_Status, "NPC OK");
 					getNPCAnimList(pNPC, _NPC_anim_list);
-				} else
+				}
+				else
 					strcpy_s(_NPC_Status, "NPC Not found");
-			} else {
+			}
+			else {
 				strcpy_s(_NPC_Status, "Invalid GUID");
 			}
 		}
@@ -725,14 +729,14 @@ static void showNPCTest(void)
 		ImGui::InputText("Anim ID:", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
 		int anim_id = atoi(_NPC_anim);
 
-		if(ImGui::Button("Do Set Anim") && pNPC) {
+		if (ImGui::Button("Do Set Anim") && pNPC) {
 			setNPCAnim(pNPC, anim_id);
 		}
 
 		ImGui::Text("");
 
-		if(ImGui::BeginListBox("Anims:")) {
-			for(const std::string& str : _NPC_anim_list)
+		if (ImGui::BeginListBox("Anims:")) {
+			for (const std::string& str : _NPC_anim_list)
 				ImGui::Selectable(str.c_str());
 			ImGui::EndListBox();
 		}
@@ -741,9 +745,9 @@ static void showNPCTest(void)
 
 static guid spawned_guid;
 
-void getBilboPos(vector3 &outPos)
+void getBilboPos(vector3& outPos)
 {
-	DWORD ukazatel =  read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
+	DWORD ukazatel = read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
 	outPos.X = read_value_hobbit<float>((LPDWORD)ukazatel + 5);
 	outPos.Y = read_value_hobbit<float>((LPDWORD)ukazatel + 6);
 	outPos.Z = read_value_hobbit<float>((LPDWORD)ukazatel + 7);//функция установки точки телепортации
@@ -761,18 +765,18 @@ static void showSpawnTest_(void)
 
 		ImGui::Text("Spawned GUID: %s", str);
 
-		if(ImGui::Button("Do Spawn"))
+		if (ImGui::Button("Do Spawn"))
 		{
 			spawned_guid = g_ObjMgr.CreateObject("Marker", guid());
 
 			static int nmarker = 0;
-			marker *pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
-			if(pMarker)
+			marker* pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
+			if (pMarker)
 			{
 				sprintf(str, "marker%d", nmarker++);
 
 				vector3 P; getBilboPos(P);
-				pMarker->Move(P,0);
+				pMarker->Move(P, 0);
 
 				pMarker->SetText(str);
 
@@ -782,16 +786,19 @@ static void showSpawnTest_(void)
 
 		static char i_text[32];
 		ImGui::InputText("SetText", i_text, 32);
-		if(ImGui::Button("Set Text")) 
+		if (ImGui::Button("Set Text"))
 		{
-			marker *pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
-			if(pMarker)
+			marker* pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
+			if (pMarker)
 			{
 				pMarker->SetText(i_text);
 			}
 		}
 	}
 }
+
+
+const char* ObjectClasses[] = { "RigidInstance", "NPC", "Marker" };
 
 static void showSpawnTest(void)
 {
@@ -805,25 +812,31 @@ static void showSpawnTest(void)
 
 		ImGui::Text("Spawned GUID: %s", str);
 
-		if(ImGui::Button("Do Spawn"))
-		{
-			spawned_guid = g_ObjMgr.CreateObject("RigidInstance", guid());
+		static int objectIndex = 0;
+		ImGui::Text(lang ? "Select Object Type" : (const char*)u8"Выбирите тип объекта");
+		ImGui::Combo(" ", &objectIndex, ObjectClasses, IM_ARRAYSIZE(ObjectClasses));
 
-			object *pMarker = (object*)getObjectByGUID(spawned_guid.Guid);
-			if(pMarker)
+		if (ImGui::Button("Do Spawn"))
+		{
+			spawned_guid = g_ObjMgr.CreateObject(ObjectClasses[objectIndex], guid());
+
+			object* pMarker = (object*)getObjectByGUID(spawned_guid.Guid);
+			if (pMarker)
 			{
 				{
 					bin_in BinIn{};
-					if(BinIn.OpenFile("./Templates/Test.export") && BinIn.ReadHeader() && BinIn.ReadFields())
+					if (BinIn.OpenFile("./Templates/Test.export") && BinIn.ReadHeader() && BinIn.ReadFields())
 					{
 						pMarker->OnImport(BinIn);
 					}
 				}
 
 				vector3 P; getBilboPos(P);
-				pMarker->Move(P,0);
+				pMarker->Move(P, 1);
 			}
 		}
+
+
 	}
 }
 
@@ -847,7 +860,7 @@ void gui::Render() noexcept
 
 	if (ImGui::Button("Demo Window"))
 		g_bDemoWindow = true;
-	if(g_bDemoWindow)
+	if (g_bDemoWindow)
 		ImGui::ShowDemoWindow(&g_bDemoWindow);
 
 	ImGui::Separator();
