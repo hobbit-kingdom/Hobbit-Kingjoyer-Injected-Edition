@@ -96,3 +96,20 @@ xbool bin_in::ReadFields()
 	return (this->*pFunc)();
 }
 
+// prop_array
+void prop_array::Clear()
+{
+	if(m_Status == 0) {
+		typedef void (__cdecl *operator_delete_arr)(void *pArr);
+		operator_delete_arr pFunc;
+		int ptr = 0x006bf840;
+		memcpy(&pFunc, &ptr, 4);
+		pFunc(pData);
+
+		pData = NULL;
+		m_Capacity = 0;
+		m_Count = 0;
+	} else {
+		m_Count = 0;
+	}
+}

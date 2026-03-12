@@ -690,14 +690,16 @@ static void getNPCAnimList(void *pNPC, std::vector<std::string>& out_vec)
 	}
 }
 
-static char _NPC_Status[128] = "NOSTATUS";
-static char _NPC_Guid[128] = "0D8AD910_E8851002";
+
 static char _NPC_anim[128] = "1";
 
 std::vector<std::string> _NPC_anim_list;
 
 static void showNPCTest(void)
 {
+	static char _NPC_Status[128] = "NOSTATUS";
+	static char _NPC_Guid[128] = "0D8AD910_E8851002";
+
 	if (ImGui::CollapsingHeader("NPC Test"))
 	{
 		ImGui::Text(_NPC_Status);
@@ -735,6 +737,131 @@ static void showNPCTest(void)
 			for(const std::string& str : _NPC_anim_list)
 				ImGui::Selectable(str.c_str());
 			ImGui::EndListBox();
+		}
+	}
+}
+
+static object *g_propsObject;
+static prop_array g_objectProps;
+static bool g_propsWindowOpen;
+
+static void showPropsWindow(void)
+{
+	if(ImGui::Begin("Objects Properties", &g_propsWindowOpen)) {
+
+		ImGui::Columns(2, NULL, true);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2,2));
+
+		for(int i = 0; i < g_objectProps.m_Count; i++) {
+
+			// draw a line between rows
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
+			ImGui::Separator();
+			ImGui::PopStyleVar(1);
+
+			// draw name
+			ImGui::TextUnformatted(g_objectProps.pData[i].m_Name);
+
+			// draw value
+			ImGui::NextColumn();
+			ImGui::PushItemWidth(-1);
+
+			ImGui::PushID(g_objectProps.pData[i].m_Name); // to not confuse imgui
+
+			ed_property prop;
+			g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
+
+			switch(g_objectProps.pData[i].m_PropType) {
+				case PROP_xbool: {
+
+					bool bVal = !!prop.m_Value.m_xboolValue;
+					if(ImGui::Checkbox("", &bVal)) {
+						prop.m_Value.m_xboolValue = xbool(bVal);
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					}
+
+					break;
+				}
+
+				case PROP_f32: {
+					if(ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);	
+					break;
+				}
+
+				case PROP_vector3: {
+					if(ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);	
+					break;
+				}
+
+				case PROP_xcolor: {
+					float rgba[4];
+					rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
+					rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
+					rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
+					rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
+
+					if(ImGui::ColorEdit4("", rgba)) {
+						prop.m_Value.m_xcolorValue.R = rgba[0] * 255;
+						prop.m_Value.m_xcolorValue.G = rgba[1] * 255;
+						prop.m_Value.m_xcolorValue.B = rgba[2] * 255;
+						prop.m_Value.m_xcolorValue.A = rgba[3] * 255;
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					}
+
+					break;
+				}
+				default:
+					ImGui::Text("");
+			}
+
+			ImGui::PopID();
+
+			ImGui::PopItemWidth();
+			ImGui::NextColumn();
+		}
+
+		ImGui::PopStyleVar();
+		ImGui::Columns(1);
+
+		ImGui::End();
+	}
+}
+
+static void showPropsTest(void)
+{
+	static char _object_Status[32];
+
+	if (ImGui::CollapsingHeader("Props Test"))
+	{
+		static char _object_Guid[32];
+		
+
+		ImGui::Text(_object_Status);
+
+		ImGui::InputText("Object Guid:", _object_Guid, sizeof(_object_Guid));
+
+		if(ImGui::Button("Query Object")) {
+			uint32_t guid_high;
+			uint32_t guid_low;
+
+			if(sscanf(_object_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
+				object *pObject = (object*)getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
+				if(pObject) {
+					strcpy_s(_object_Status, "Object OK");
+					g_objectProps.Clear();
+					pObject->EnumerateProperties(g_objectProps);
+					g_propsObject = pObject;
+				} else
+					strcpy_s(_object_Status, "Object Not found");
+			} else {
+				strcpy_s(_object_Status, "Invalid GUID");
+			}
+		}
+
+		if(ImGui::Button("ShowPropertiesWindow")) {
+			g_propsWindowOpen = true;
 		}
 	}
 }
@@ -1688,8 +1815,9 @@ void gui::Render() noexcept
 		change_float_hobbit((LPVOID)0x0075BDB4, 10);
 
 	showObjectList();
-	showNPCTest();
+	//showNPCTest();
 	showSpawnTest();
+	showPropsTest();
 
 	ImGui::Text("");
 	ImGui::Text("");
@@ -1716,6 +1844,9 @@ void gui::Render() noexcept
 	}
 
 	ImGui::End();
+
+	if(g_propsWindowOpen)
+		showPropsWindow();
 }
 
 //complicated functions
