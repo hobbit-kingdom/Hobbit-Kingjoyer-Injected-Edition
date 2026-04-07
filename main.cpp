@@ -389,7 +389,7 @@ int mainThread()
 {
 	//AllocConsole();
 	//freopen("CONOUT$", "w",
-	//	stdout);
+		//stdout);
 
 	if (kiero::init(kiero::RenderType::D3D9) == kiero::Status::Success)
 	{

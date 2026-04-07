@@ -5,6 +5,7 @@
 #include "Randommod.h"
 #include "PickupAll.h"
 #include "functions.h"
+#include "CanKillAll.h"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
@@ -351,6 +352,8 @@ bool objInView = false;
 bool trianglesInView = false;
 bool randommod = false;
 bool pickupall = false;
+bool cankillall = false;
+bool allAgress = false;
 bool renderRigidInstances = true;
 bool renderPlaySurface = true;
 bool renderGeometry = false;
@@ -382,18 +385,19 @@ struct Point {
 	float y = 0;
 	float z = 0;
 	float frame_animation = 0;
-	LPDWORD ukazatel = 0x00;
-	LPDWORD ukazatel_stamina = 0x00;
-	LPDWORD ukazatel_animation = 0x00;
-	LPDWORD ukazatel_chesttime = 0x00;
+	DWORD ukazatel = 0x00;
+	DWORD ukazatel_stamina = 0x00;
+	DWORD ukazatel_animation = 0x00;
+	DWORD ukazatel_chesttime = 0x00;
 };
 Point savedPoint;
 float x, y, z;
 float frame_animation;
-LPDWORD ukazatel;
-LPDWORD ukazatel_stamina;
-LPDWORD ukazatel_animation;
-LPDWORD ukazatel_chesttime;
+DWORD ukazatel;
+DWORD ukazatel_stamina;
+DWORD ukazatel_animation;
+DWORD ukazatel_chesttime;
+
 
 LPBYTE currentLevel = (LPBYTE)(GetModuleBaseAddress(GetProcessID(L"Meridian.exe"), L"Meridian.exe") + 0x362B5C);
 
@@ -405,7 +409,7 @@ Point currentBilboPos;
 auto start = high_resolution_clock::now();
 auto startChest = high_resolution_clock::now();
 
-LPDWORD xPointer = 0x00;
+DWORD xPointer = 0x00;
 float xPos = 0;
 float yPos = 0;
 float zPos = 0;
@@ -560,19 +564,19 @@ void* getObjectByGUID(uint64_t guid)
 
 static void showObjectList(void)
 {
-	if (ImGui::CollapsingHeader("Object List"))
+	if (ImGui::CollapsingHeader(lang ? "Object List" : (const char*)u8"Список объектов"))
 	{
-		if (ImGui::Button("Refresh"))
+		if (ImGui::Button(lang ? "Refresh" : (const char*)u8"Обновить"))
 			updateObjectList();
 
-		if (ImGui::BeginCombo("ObjectList", ""))
+		if (ImGui::BeginCombo(lang ? "ObjectList" : (const char*)u8"СписокОбъектов", ""))
 		{
 			for (size_t i = 0; i < objects.size(); i++)
 				ImGui::Selectable(objects[i].c_str());
 			ImGui::EndCombo();
 		}
 
-		ImGui::Text("Objects Total: %u", objects.size());
+		ImGui::Text(lang ? "Objects Total: %u" : (const char*)u8"Количество объектов: %u", objects.size());
 	}
 }
 
@@ -702,13 +706,13 @@ static void showNPCTest(void)
 	static char _NPC_Status[128] = "NOSTATUS";
 	static char _NPC_Guid[128] = "0D8AD910_E8851002";
 
-	if (ImGui::CollapsingHeader("NPC Test"))
+	if (ImGui::CollapsingHeader(lang ? "NPC Test" : (const char*)u8"НПС Тест"))
 	{
 		ImGui::Text(_NPC_Status);
 
-		ImGui::InputText("NPC Guild:", _NPC_Guid, sizeof(_NPC_Guid));
+		ImGui::InputText(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", _NPC_Guid, sizeof(_NPC_Guid));
 
-		if (ImGui::Button("Query NPC")) {
+		if (ImGui::Button(lang ? "Query NPC" : (const char*)u8"Найти НПС")) {
 			uint32_t guid_high;
 			uint32_t guid_low;
 
@@ -728,16 +732,16 @@ static void showNPCTest(void)
 
 		ImGui::Text("");
 
-		ImGui::InputText("Anim ID:", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
+		ImGui::InputText(lang ? "Anim ID:" : (const char*)u8"ID Анимации", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
 		int anim_id = atoi(_NPC_anim);
 
-		if (ImGui::Button("Do Set Anim") && pNPC) {
+		if (ImGui::Button(lang ? "Do Set Anim" : (const char*)u8"Установить Анимацию") && pNPC) {
 			setNPCAnim(pNPC, anim_id);
 		}
 
 		ImGui::Text("");
 
-		if (ImGui::BeginListBox("Anims:")) {
+		if (ImGui::BeginListBox(lang ? "Anims:" : (const char*)u8"Анимации:")) {
 			for (const std::string& str : _NPC_anim_list)
 				ImGui::Selectable(str.c_str());
 			ImGui::EndListBox();
@@ -751,7 +755,7 @@ static bool g_propsWindowOpen;
 
 static void showPropsWindow(void)
 {
-	if(ImGui::Begin("Objects Properties", &g_propsWindowOpen)) {
+	if(ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen)) {
 
 		ImGui::Columns(2, NULL, true);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2,2));
@@ -837,16 +841,16 @@ static void showPropsTest(void)
 {
 	static char _object_Status[32];
 
-	if (ImGui::CollapsingHeader("Props Test"))
+	if (ImGui::CollapsingHeader(lang ? "Props Test" : (const char*)u8"Тест Свойств Объектов"))
 	{
 		static char _object_Guid[32];
 		
 
 		ImGui::Text(_object_Status);
 
-		ImGui::InputText("Object Guid:", _object_Guid, sizeof(_object_Guid));
+		ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", _object_Guid, sizeof(_object_Guid));
 
-		if(ImGui::Button("Query Object")) {
+		if (ImGui::Button(lang ? "Query Object" : (const char*)u8"Свойтва Объекта")) {
 			uint32_t guid_high;
 			uint32_t guid_low;
 
@@ -864,7 +868,7 @@ static void showPropsTest(void)
 			}
 		}
 
-		if(ImGui::Button("ShowPropertiesWindow")) {
+		if(ImGui::Button(lang ? "ShowPropertiesWindow" : (const char*)u8"Показать Окно Свойств")) {
 			g_propsWindowOpen = true;
 		}
 	}
@@ -890,9 +894,9 @@ static void showSpawnTest_(void)
 
 		sprintf(str, "%X_%X", guid_high, guid_low);
 
-		ImGui::Text("Spawned GUID: %s", str);
+		ImGui::Text(lang ? "Spawned GUID: %s" : (const char*)u8"Заспавнен GUID: %s", str);
 
-		if (ImGui::Button("Do Spawn"))
+		if (ImGui::Button(lang ? "Do Spawn" : (const char*)u8"Заспавнить"))
 		{
 			spawned_guid = g_ObjMgr.CreateObject("Marker", guid());
 
@@ -912,8 +916,8 @@ static void showSpawnTest_(void)
 		}
 
 		static char i_text[32];
-		ImGui::InputText("SetText", i_text, 32);
-		if (ImGui::Button("Set Text"))
+		ImGui::InputText(lang ? "SetText" : (const char*)u8"Установить Текс", i_text, 32);
+		if (ImGui::Button(lang ? "Set Text" : (const char*)u8"Установить Текс"))
 		{
 			marker* pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
 			if (pMarker)
@@ -937,13 +941,13 @@ static void showSpawnTest(void)
 
 		sprintf(str, "%X_%X", guid_high, guid_low);
 
-		ImGui::Text("Spawned GUID: %s", str);
+		ImGui::Text(lang ? "Spawned GUID: %s" : (const char*)u8"Заспавнен GUID: %s", str);
 
 		static int objectIndex = 0;
 		ImGui::Text(lang ? "Select Object Type" : (const char*)u8"Выбирите тип объекта");
 		ImGui::Combo(" ", &objectIndex, ObjectClasses, IM_ARRAYSIZE(ObjectClasses));
 
-		if (ImGui::Button("Do Spawn"))
+		if (ImGui::Button(lang ? "Do Spawn" : (const char*)u8"Заспавнить"))
 		{
 			spawned_guid = g_ObjMgr.CreateObject(ObjectClasses[objectIndex], guid());
 
@@ -1123,14 +1127,14 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Next level" : (const char*)u8"Cледующий уровень");
 		ImGui::Separator();
 
-		static int nextLevel = read_int_value(currentLevel) + 1;
+		static int nextLevel = read_value_hobbit<int>(currentLevel) + 1;
 
 		ImGui::PushItemWidth(100);
 		ImGui::InputInt("", &nextLevel, 1);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Set next level" : (const char*)u8"Установить следующий уровень")) {
-			save_1Byte_hobbit(currentLevel, nextLevel - 1);
+			change_value_hobbit<BYTE>(currentLevel, nextLevel - 1);
 		}
 
 		ImGui::Text("");
@@ -1144,61 +1148,61 @@ void gui::Render() noexcept
 		ImGui::Separator();
 
 		if (ImGui::Button(lang ? "Ressurect" : (const char*)u8"Воскреснуть")) {
-			LPDWORD ressurect = ukazatel_hobbit((LPDWORD)0x0075BA3C) + 441;
-			change_1Byte_hobbit(ressurect, 0x0, 0x1);
+			DWORD ressurect = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C) + 0x6E4;
+			change_value_hobbit<BYTE>((LPDWORD)ressurect, 0x0, 0x1);
 		}
 
 		if (ImGui::Checkbox(lang ? "Full stamina" : (const char*)u8"Бесконечная выносливость", &stamina)) {
-			//savedPoint.ukazatel_stamina = ukazatel_hobbit((LPDWORD)0x0075BA3C);
+			//savedPoint.ukazatel_stamina = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C);
 			//ukazatel_stamina = savedPoint.ukazatel_stamina; //функция беконечной стамины
-			change_4Byte_hobbit((LPDWORD)0x0043D8E9, 0x90909090, 0x0A049E89);
-			change_2Byte_hobbit((LPDWORD)0x0043D8ED, 0x9090, 0x0000); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
+			change_value_hobbit<DWORD>((LPDWORD)0x0043D8E9, 0x90909090, 0x0A049E89);
+			change_value_hobbit<WORD>((LPDWORD)0x0043D8ED, 0x9090, 0x0000); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
 		}
 		if (ImGui::Checkbox(lang ? "Full chest time" : (const char*)u8"Бесконечный таймер сундука", &chesttimer)) {
 
-			change_4Byte_hobbit((LPDWORD)0x005299E9, 0x90909090, 0xFA5025D8);
-			change_2Byte_hobbit((LPDWORD)0x005299ED, 0x9090, 0x006E); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
+			change_value_hobbit<DWORD>((LPDWORD)0x005299E9, 0x90909090, 0xFA5025D8);
+			change_value_hobbit<WORD>((LPDWORD)0x005299ED, 0x9090, 0x006E); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
 		}
 		if (ImGui::Checkbox(lang ? "Instant opening of chests" : (const char*)u8"Моментальное открытие сундуков", &instantChest)) {
-			change_1Byte_hobbit((LPVOID)0x00529A22, 0x75, 0x74); //функция моментального открытия сундуков
+			change_value_hobbit<BYTE>((LPVOID)0x00529A22, 0x75, 0x74); //функция моментального открытия сундуков
 		}
 		if (ImGui::Checkbox(lang ? "Full stones" : (const char*)u8"Бесконечные камни", &stones)) { //бесконечные камни
-			change_4Byte_hobbit((LPDWORD)0x00434DDB, 0x90909090, 0x082464D8);
+			change_value_hobbit<DWORD>((LPDWORD)0x00434DDB, 0x90909090, 0x082464D8);
 		}
 		if (ImGui::Checkbox(lang ? "Invulnerability" : (const char*)u8"Бессмертие", &invulBilbo)) {
-			change_1Byte_hobbit((LPVOID)0x0075FBF4, 0x01, 0x00); //функция бессмертия
+			change_value_hobbit<BYTE>((LPVOID)0x0075FBF4, 0x01, 0x00); //функция бессмертия
 		}
 
 		if (ImGui::Button(lang ? "Upgrade staff" : (const char*)u8"Улучшить посох")) {
 			for (int item = 28; item < 37; item++)
-				plusA_float_hobbit((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на посох
+				plusA_value_hobbit<float>((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на посох
 		}
 		if (ImGui::Button(lang ? "Upgrade 1 sting" : (const char*)u8"Улучшить меч")) {
 			for (int item = 37; item < 43; item++)
-				plusA_float_hobbit((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на жало
+				plusA_value_hobbit<float>((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на жало
 		}
 		if (ImGui::Button(lang ? "Upgrade 1 stone" : (const char*)u8"Улучшить камни")) {
 			for (int item = 43; item < 46; item++)
-				plusA_float_hobbit((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на камни
+				plusA_value_hobbit<float>((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи всех улучшений на камни
 		}
 
 		if (ImGui::Button(lang ? "Add 1 stone" : (const char*)u8"Выдать 1 камень")) {
-			plusA_float_hobbit((LPVOID)0x0075BDB4, 1); //функция прибавки на 1 камней
+			plusA_value_hobbit<float>((LPVOID)0x0075BDB4, 1); //функция прибавки на 1 камней
 		}
 		if (ImGui::Button(lang ? "Add 5 stones" : (const char*)u8"Выдать 5 каменей")) {
-			plusA_float_hobbit((LPVOID)0x0075BDB4, 5); //функция прибавки на 5 камней
+			plusA_value_hobbit<float>((LPVOID)0x0075BDB4, 5); //функция прибавки на 5 камней
 		}
 		if (ImGui::Button(lang ? "Add 1 extra HP" : (const char*)u8"1 доп хп")) {
-			plusA_float_hobbit((LPVOID)0x0075BDC4, 1); //функция прибавки на 1 доп хп
+			plusA_value_hobbit<float>((LPVOID)0x0075BDC4, 1); //функция прибавки на 1 доп хп
 		}
 		if (ImGui::Button(lang ? "Add 10 extra HP" : (const char*)u8"10 доп хп")) {
-			plusA_float_hobbit((LPVOID)0x0075BDC4, 10); //функция прибавки на 10 доп хп
+			plusA_value_hobbit<float>((LPVOID)0x0075BDC4, 10); //функция прибавки на 10 доп хп
 		}
 		if (ImGui::Button(lang ? "Add 1 Max HP" : (const char*)u8"1 макс хп")) {
-			plusA_float_hobbit((LPVOID)0x0075BE14, 1); //функция прибавки на 1 макс хп
+			plusA_value_hobbit<float>((LPVOID)0x0075BE14, 1); //функция прибавки на 1 макс хп
 		}
 		if (ImGui::Button(lang ? "Add 10 Max HP" : (const char*)u8"10 макс хп")) {
-			plusA_float_hobbit((LPVOID)0x0075BE14, 10); //функция прибавки на 10 макс хп
+			plusA_value_hobbit<float>((LPVOID)0x0075BE14, 10); //функция прибавки на 10 макс хп
 		}
 
 		ImGui::Text("");
@@ -1212,7 +1216,7 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply speed" : (const char*)u8"Применить скорость")) {
-			change_float_hobbit((LPVOID)0x0075B850, speed); //функция изменения скорости Бильбо
+			change_value_hobbit<float>((LPVOID)0x0075B850, speed); //функция изменения скорости Бильбо
 		}
 
 		ImGui::Text("");
@@ -1226,7 +1230,7 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply power" : (const char*)u8"Применить прыжок")) {
-			change_float_hobbit((LPVOID)0x0075B888, jumpPower);
+			change_value_hobbit<float>((LPVOID)0x0075B888, jumpPower);
 		}
 		ImGui::Text("");
 		ImGui::Text(lang ? "Speed in jump" : (const char*)u8"Скорость в прыжке");
@@ -1237,7 +1241,7 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply speed in jump" : (const char*)u8"Применить скорсоть в прыжке")) {
-			change_float_hobbit((LPVOID)0x0075B868, speedInJump);
+			change_value_hobbit<float>((LPVOID)0x0075B868, speedInJump);
 		}
 
 		ImGui::Text("");
@@ -1249,7 +1253,7 @@ void gui::Render() noexcept
 		ImGui::InputInt("Damage:", &damage, 100);
 
 		if (ImGui::Button(lang ? "Apply damage" : (const char*)u8"Применить урон")) {
-			save_2Byte_hobbit((LPVOID)0x00572D8E, damage);
+			change_value_hobbit<WORD>((LPVOID)0x00572D8E, damage);
 		}
 
 		ImGui::Unindent();
@@ -1262,10 +1266,10 @@ void gui::Render() noexcept
 		ImGui::Separator();
 
 		if (ImGui::Button(lang ? "Decrease FOV" : (const char*)u8"Уменьшить FOV")) {
-			plusA_float_hobbit((LPVOID)0x00772BF0, -0.1); //функция приближения камеры на 0.1
+			plusA_value_hobbit<float>((LPVOID)0x00772BF0, -0.1); //функция приближения камеры на 0.1
 		}
 		if (ImGui::Button(lang ? "Increase FOV" : (const char*)u8"Увеличить FOV")) {
-			plusA_float_hobbit((LPVOID)0x00772BF0, +0.1); //функция отдаления камеры на 0.1
+			plusA_value_hobbit<float>((LPVOID)0x00772BF0, +0.1); //функция отдаления камеры на 0.1
 		}
 
 		static float fovValue = 1.27;
@@ -1275,7 +1279,7 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply manual FOV" : (const char*)u8"Применить ручной Угол Обзора")) {
-			change_float_hobbit((LPVOID)0x00772BF0, fovValue);
+			change_value_hobbit<float>((LPVOID)0x00772BF0, fovValue);
 		}
 
 		static int cameraDistance = 100;
@@ -1285,8 +1289,8 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply Distance" : (const char*)u8"Применить расстояние")) {
-			change_float_hobbit((LPVOID)0x00772A70, cameraDistance);
-			change_float_hobbit((LPVOID)0x00772B38, cameraDistance);
+			change_value_hobbit<float>((LPVOID)0x00772A70, cameraDistance);
+			change_value_hobbit<float>((LPVOID)0x00772B38, cameraDistance);
 		}
 
 		static int maxCameraDistance = 300;
@@ -1296,30 +1300,30 @@ void gui::Render() noexcept
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply Max Distance" : (const char*)u8"Применить макс. расстояние")) {
-			change_float_hobbit((LPVOID)0x00772B3C, maxCameraDistance);
+			change_value_hobbit<float>((LPVOID)0x00772B3C, maxCameraDistance);
 		}
 
 		if (ImGui::Button(lang ? "Flip camera" : (const char*)u8"Перевернуть камеру")) {
-			change_4Byte_hobbit((LPVOID)0x00772BF0, 0x3FA0D97C, 0x408CCCCD);
+			change_value_hobbit<DWORD>((LPVOID)0x00772BF0, 0x3FA0D97C, 0x408CCCCD);
 		}
 
 		if (ImGui::Button(lang ? "First person" : (const char*)u8"Первое лицо")) {
-			change_float_hobbit((LPVOID)0x00772A70, 1);
-			change_float_hobbit((LPVOID)0x00772B38, 1);  //первое лицо
-			change_float_hobbit((LPVOID)0x00772B3C, 1);
-			change_1Byte_hobbit((LPVOID)0x00777AA0, 0x00, 0x00);
+			change_value_hobbit<float>((LPVOID)0x00772A70, 1);
+			change_value_hobbit<float>((LPVOID)0x00772B38, 1);  //первое лицо
+			change_value_hobbit<float>((LPVOID)0x00772B3C, 1);
+			change_value_hobbit<BYTE>((LPVOID)0x00777AA0, 0x00, 0x00);
 		}
 		if (ImGui::Button(lang ? "Second person" : (const char*)u8"Второе лицо")) {
-			change_float_hobbit((LPVOID)0x00772A70, -300);
-			change_float_hobbit((LPVOID)0x00772B38, -300);  //второе лицо
-			change_float_hobbit((LPVOID)0x00772B3C, -300);
-			change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x01);
+			change_value_hobbit<float>((LPVOID)0x00772A70, -300);
+			change_value_hobbit<float>((LPVOID)0x00772B38, -300);  //второе лицо
+			change_value_hobbit<float>((LPVOID)0x00772B3C, -300);
+			change_value_hobbit<BYTE>((LPVOID)0x00777AA0, 0x01, 0x01);
 		}
 		if (ImGui::Button(lang ? "Third person" : (const char*)u8"Третье лицо")) {
-			change_float_hobbit((LPVOID)0x00772A70, 100);
-			change_float_hobbit((LPVOID)0x00772B38, 100);  //третье лицо
-			change_float_hobbit((LPVOID)0x00772B3C, 300);
-			change_1Byte_hobbit((LPVOID)0x00777AA0, 0x01, 0x01);
+			change_value_hobbit<float>((LPVOID)0x00772A70, 100);
+			change_value_hobbit<float>((LPVOID)0x00772B38, 100);  //третье лицо
+			change_value_hobbit<float>((LPVOID)0x00772B3C, 300);
+			change_value_hobbit<BYTE>((LPVOID)0x00777AA0, 0x01, 0x01);
 		}
 		ImGui::Unindent();
 	}
@@ -1331,27 +1335,27 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Statistics" : (const char*)u8"Статистика");
 		ImGui::Separator();
 		if (ImGui::Checkbox(lang ? "Bilbo Positon" : (const char*)u8"Позиция Бильбо", &bilboPos)) {
-			change_1Byte_hobbit((LPVOID)0x0075FBD4, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x0075FBD4, 0x01, 0x00);
 		}
 
 		if (ImGui::Checkbox(lang ? "Cinema Debug" : (const char*)u8"Информация в катсценах", &cutsceneInfo)) {
-			change_1Byte_hobbit((LPVOID)0x0075FBF8, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x0075FBF8, 0x01, 0x00);
 		}
 
 		if (ImGui::Checkbox(lang ? "Objects stats" : (const char*)u8"Информация об объектах", &objInfo)) {
-			change_1Byte_hobbit((LPVOID)0x0075FBC4, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x0075FBC4, 0x01, 0x00);
 		}
 
 		if (ImGui::Checkbox(lang ? "Big Objects stats" : (const char*)u8"Много информации об объектах", &maxobjInfo)) {
-			change_1Byte_hobbit((LPVOID)0x00778054, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x00778054, 0x01, 0x00);
 		}
 
 		if (ImGui::Checkbox(lang ? "Objects in view" : (const char*)u8"Объекты в зоне видимости", &objInView)) {
-			change_1Byte_hobbit((LPVOID)0x00778070, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x00778070, 0x01, 0x00);
 		}
 
 		if (ImGui::Checkbox(lang ? "Triangles in view" : (const char*)u8"Треугольники в зоне видимости", &trianglesInView)) {
-			change_1Byte_hobbit((LPVOID)0x00778058, 0x01, 0x00);
+			change_value_hobbit<BYTE>((LPVOID)0x00778058, 0x01, 0x00);
 		}
 
 		auto tim = duration_cast<seconds>(high_resolution_clock::now() - start).count();
@@ -1360,37 +1364,37 @@ void gui::Render() noexcept
 		{
 			start = high_resolution_clock::now();
 
-			numberOfAttacks = read_float_value((LPVOID)(0x0075C034));
-			numberOfJumps = read_float_value((LPVOID)(0x0075C034 + 4));
-			distanceTraveled = read_float_value((LPVOID)(0x0075C034 + 8));
-			damageTakenFromPoison = read_float_value((LPVOID)(0x0075C034 + 12));
-			timeSpentHiding = read_float_value((LPVOID)(0x0075C034 + 16));
-			numberOfStonesThrown = read_float_value((LPVOID)(0x0075C034 + 20));
-			missedJumps = read_float_value((LPVOID)(0x0075C034 + 24));
-			numberOfPoleJumps = read_float_value((LPVOID)(0x0075C034 + 28));
-			damageTaken = read_float_value((LPVOID)(0x0075C034 + 32));
-			vigorHealthUsed = read_float_value((LPVOID)(0x0075C034 + 36));
-			swingsFromMineCart = read_float_value((LPVOID)(0x0075C034 + 40));
-			ridesInMinecart = read_float_value((LPVOID)(0x0075C034 + 44));
-			spSpentInVendor = read_float_value((LPVOID)(0x0075C034 + 48));
-			healthPotionsBought = read_float_value((LPVOID)(0x0075C034 + 52));
-			jumpsAlmostMissed = read_float_value((LPVOID)(0x0075C034 + 56));
-			distanceInMineCart = read_float_value((LPVOID)(0x0075C034 + 60));
-			enemiesKilled = read_float_value((LPVOID)(0x0075C034 + 64));
-			deathsDueToSting = read_float_value((LPVOID)(0x0075C034 + 68));
-			deathDueToStuff = read_float_value((LPVOID)(0x0075C034 + 72));
-			deathsDueToStones = read_float_value((LPVOID)(0x0075C034 + 76));
-			missedCourageFromKills = read_float_value((LPVOID)(0x0075C034 + 80));
-			totalSpMissed = read_float_value((LPVOID)(0x0075C034 + 84));
-			totalCouragePointsMissed = read_float_value((LPVOID)(0x0075C034 + 88));
-			totalChestsMissed = read_float_value((LPVOID)(0x0075C034 + 92));
-			totalQuestsMissed = read_float_value((LPVOID)(0x0075C034 + 96));
-			amountOfBlocks = read_float_value((LPVOID)(0x0075C034 + 100));
+			numberOfAttacks = read_value_hobbit<float>((LPVOID)(0x0075C034));
+			numberOfJumps = read_value_hobbit<float>((LPVOID)(0x0075C034 + 4));
+			distanceTraveled = read_value_hobbit<float>((LPVOID)(0x0075C034 + 8));
+			damageTakenFromPoison = read_value_hobbit<float>((LPVOID)(0x0075C034 + 12));
+			timeSpentHiding = read_value_hobbit<float>((LPVOID)(0x0075C034 + 16));
+			numberOfStonesThrown = read_value_hobbit<float>((LPVOID)(0x0075C034 + 20));
+			missedJumps = read_value_hobbit<float>((LPVOID)(0x0075C034 + 24));
+			numberOfPoleJumps = read_value_hobbit<float>((LPVOID)(0x0075C034 + 28));
+			damageTaken = read_value_hobbit<float>((LPVOID)(0x0075C034 + 32));
+			vigorHealthUsed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 36));
+			swingsFromMineCart = read_value_hobbit<float>((LPVOID)(0x0075C034 + 40));
+			ridesInMinecart = read_value_hobbit<float>((LPVOID)(0x0075C034 + 44));
+			spSpentInVendor = read_value_hobbit<float>((LPVOID)(0x0075C034 + 48));
+			healthPotionsBought = read_value_hobbit<float>((LPVOID)(0x0075C034 + 52));
+			jumpsAlmostMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 56));
+			distanceInMineCart = read_value_hobbit<float>((LPVOID)(0x0075C034 + 60));
+			enemiesKilled = read_value_hobbit<float>((LPVOID)(0x0075C034 + 64));
+			deathsDueToSting = read_value_hobbit<float>((LPVOID)(0x0075C034 + 68));
+			deathDueToStuff = read_value_hobbit<float>((LPVOID)(0x0075C034 + 72));
+			deathsDueToStones = read_value_hobbit<float>((LPVOID)(0x0075C034 + 76));
+			missedCourageFromKills = read_value_hobbit<float>((LPVOID)(0x0075C034 + 80));
+			totalSpMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 84));
+			totalCouragePointsMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 88));
+			totalChestsMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 92));
+			totalQuestsMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 96));
+			amountOfBlocks = read_value_hobbit<float>((LPVOID)(0x0075C034 + 100));
 
-			xPointer = ukazatel_hobbit((LPVOID)0x0075BA3C);
-			xPos = read_float_value((LPVOID)(xPointer + 497));
-			yPos = read_float_value((LPVOID)(xPointer + 498));
-			zPos = read_float_value((LPVOID)(xPointer + 499));
+			xPointer = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C);
+			xPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c4));
+			yPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c8));
+			zPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7cC));
 		}
 
 		ImGui::Text("X: %g", xPos); ImGui::SameLine();
@@ -1459,7 +1463,7 @@ void gui::Render() noexcept
 		ImGui::InputInt("     ", &Stat);
 		ImGui::PopItemWidth();
 		if (ImGui::Button(lang ? "Change Statistics" : (const char*)u8"Изменить Статистику")) {
-			change_float_hobbit((LPDWORD)0x0075C034 + NumberStat, Stat);
+			change_value_hobbit<float>((LPDWORD)0x0075C034 + NumberStat, Stat);
 		}
 
 		ImGui::Unindent();
@@ -1580,10 +1584,10 @@ void gui::Render() noexcept
 		ImGui::Combo("   ", &questItem, questItems, IM_ARRAYSIZE(questItems));
 
 		if (ImGui::Button(lang ? "Give quest item" : (const char*)u8"Выдать квестовый предмет")) {
-			plusA_float_hobbit((LPBYTE)0x0075BE98 + questItem * 4, 1); //функция выдачи квестового предмета
+			plusA_value_hobbit<float>((LPBYTE)0x0075BE98 + questItem * 4, 1); //функция выдачи квестового предмета
 		}
 		if (ImGui::Button(lang ? "Delete quest item" : (const char*)u8"Удалить квестовый предмет")) {
-			change_2Byte_hobbit((LPBYTE)0x0075BE9A + questItem * 4, 0x00, 0x00); //функция выдачи квестового предмета
+			change_value_hobbit<WORD>((LPBYTE)0x0075BE9A + questItem * 4, 0x00, 0x00); //функция выдачи квестового предмета
 		}
 		ImGui::Unindent();
 	}
@@ -1657,16 +1661,16 @@ void gui::Render() noexcept
 		ImGui::Combo("     ", &item, items, IM_ARRAYSIZE(items));
 
 		if (ImGui::Button(lang ? "Give item" : (const char*)u8"Выдать предмет")) {
-			plusA_float_hobbit((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи предмета
+			plusA_value_hobbit<float>((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи предмета
 		}
 		if (ImGui::Button(lang ? "Remove item" : (const char*)u8"Удалить предмет")) {
-			change_2Byte_hobbit((LPBYTE)0x0075BDB2 + item * 4, 0x00, 0x00); //функция удаления предмета
+			change_value_hobbit<WORD>((LPBYTE)0x0075BDB2 + item * 4, 0x00, 0x00); //функция удаления предмета
 		}
 		if (ImGui::Button(lang ? "Show item" : (const char*)u8"Показать предмет")) {
-			change_1Byte_hobbit((LPBYTE)0x007212BC + item * 4, 0x01, 0x01); //функция показа предмета
+			change_value_hobbit<BYTE>((LPBYTE)0x007212BC + item * 4, 0x01, 0x01); //функция показа предмета
 		}
 		if (ImGui::Button(lang ? "Hide item" : (const char*)u8"Спрятать предмет")) {
-			change_2Byte_hobbit((LPBYTE)0x007212BC + item * 4, 0x00, 0x00); //функция убирания предмета
+			change_value_hobbit<WORD>((LPBYTE)0x007212BC + item * 4, 0x00, 0x00); //функция убирания предмета
 		}
 		ImGui::Unindent();
 	}
@@ -1674,42 +1678,42 @@ void gui::Render() noexcept
 	{
 		ImGui::Indent();
 		if (ImGui::Checkbox(lang ? "Disable the possibility of poisoning" : (const char*)u8"Отключить возможность отравиться", &poison_chance)) {
-			change_1Byte_hobbit((LPVOID)0x0042132C, 0x00, 0x01); //функция возможности отравиться у Бильбо
+			change_value_hobbit<BYTE>((LPVOID)0x0042132C, 0x00, 0x01); //функция возможности отравиться у Бильбо
 		}
 		if (ImGui::Checkbox(lang ? "Disable wall sliding" : (const char*)u8"Отключить скольжение по стене", &sliding_wall)) {
-			change_1Byte_hobbit((LPVOID)0x0044342F, 0xEB, 0x74); //функция отключения скольжения по стене (если скольже с анимацие, то скольжение всё равно сработает)
+			change_value_hobbit<BYTE>((LPVOID)0x0044342F, 0xEB, 0x74); //функция отключения скольжения по стене (если скольже с анимацие, то скольжение всё равно сработает)
 		}
 		if (ImGui::Checkbox(lang ? "Slide on" : (const char*)u8"Включить слайд", &slide)) {
-			change_1Byte_hobbit((LPVOID)0x0043CD52, 0x08, 0x04); //функция окончания беты после окончания уровня
+			change_value_hobbit<BYTE>((LPVOID)0x0043CD52, 0x08, 0x04); //функция окончания беты после окончания уровня
 		}
 		if (ImGui::Checkbox(lang ? "Lock animation" : (const char*)u8"Залочить анимацию", &lock_animation)) {
-			savedPoint.ukazatel_animation = ukazatel_hobbit((LPDWORD)0x0075BA3C);
+			savedPoint.ukazatel_animation = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C);
 			ukazatel_animation = savedPoint.ukazatel_animation; //функция беконечной стамины
-			savedPoint.frame_animation = save_float_hobbit(ukazatel_animation + 0x530);
+			savedPoint.frame_animation = read_value_hobbit<float>((LPDWORD)ukazatel_animation + 0x530);
 		}
 		if (ImGui::Checkbox(lang ? "Finish the game after completing a level" : (const char*)u8"Закончить игру после окончания уровня", &finish_game)) {
-			change_1Byte_hobbit((LPVOID)0x0052ACDF, 0x75, 0x74); //функция окончания игры после окончания уровня
+			change_value_hobbit<BYTE>((LPVOID)0x0052ACDF, 0x75, 0x74); //функция окончания игры после окончания уровня
 		}
 		if (ImGui::Checkbox(lang ? "Finish the demo after completing a level" : (const char*)u8"Закончить демо после окончания уровня", &finish_demo)) {
-			change_1Byte_hobbit((LPVOID)0x0052ACC2, 0x75, 0x74); //функция окончания беты после окончания уровня
+			change_value_hobbit<BYTE>((LPVOID)0x0052ACC2, 0x75, 0x74); //функция окончания беты после окончания уровня
 		}
 		ImGui::Text(lang ? "Change HUD HP (max 22)" : (const char*)u8"Изменение HUD ХП (макс 22)");
 		if (ImGui::Button("<")) {
-			HUD_HP = read_int_value((LPBYTE)0x004F5BB8);
+			HUD_HP = read_value_hobbit<int>((LPBYTE)0x004F5BB8);
 			if (HUD_HP == 98615552) {
-				change_1Byte_hobbit((LPBYTE)0x004F5BB8, 0x16, 0x00);
+				change_value_hobbit<BYTE>((LPBYTE)0x004F5BB8, 0x16, 0x00);
 			}
-			else plusA_int_hobbit((LPBYTE)0x004F5BB8, -1); //функция изменения худа хп
+			else plusA_value_hobbit<int>((LPBYTE)0x004F5BB8, -1); //функция изменения худа хп
 		}
 		ImGui::SameLine();
 		if (ImGui::Button(">")) {
-			HUD_HP = read_int_value((LPBYTE)0x004F5BB8);
+			HUD_HP = read_value_hobbit<int>((LPBYTE)0x004F5BB8);
 			if (HUD_HP == 98615574) {
-				change_1Byte_hobbit((LPBYTE)0x004F5BB8, 0x00, 0x00);
+				change_value_hobbit<BYTE>((LPBYTE)0x004F5BB8, 0x00, 0x00);
 			}
-			else plusA_int_hobbit((LPBYTE)0x004F5BB8, 1); //функция изменения худа хп
+			else plusA_value_hobbit<int>((LPBYTE)0x004F5BB8, 1); //функция изменения худа хп
 		}
-		HUD_HP = read_int_value((LPBYTE)0x004F5BB8);
+		HUD_HP = read_value_hobbit<int>((LPBYTE)0x004F5BB8);
 		ImGui::Text((const char*)to_string(HUD_HP - 98615552).c_str());
 		ImGui::Unindent();
 
@@ -1725,28 +1729,28 @@ void gui::Render() noexcept
 		ringGreen = static_cast<int>(round(color.y * 255));
 		ringBlue = static_cast<int>(round(color.z * 255));
 		if (ImGui::Button(lang ? "Change the color of the ring" : (const char*)u8"Изменить цвет кольца")) {
-			change_1Byte_hobbit((LPBYTE)0x0041B018, ringGreen, ringGreen);
-			change_4Byte_hobbit((LPDWORD)0x0041B019, 0xC747FF31, 0xC747FF31);
-			change_4Byte_hobbit((LPDWORD)0x0041B01D, 0x005EF086, 0x005EF086);
-			change_4Byte_hobbit((LPDWORD)0x0041B021, 0x00000000, 0x00000000);
-			change_4Byte_hobbit((LPDWORD)0x0041B025, 0x2444C600, 0x2444C600);
-			change_4Byte_hobbit((LPDWORD)0x0041B029, 0x44C6FF13, 0x44C6FF13);
-			change_2Byte_hobbit((LPWORD)0x0041B02D, 0x1224, 0x1224);
-			change_1Byte_hobbit((LPBYTE)0x0041B02F, ringRed, ringRed); //функция изменения цвета кольца
-			change_4Byte_hobbit((LPDWORD)0x0041B030, 0x102444C6, 0x102444C6);
-			change_1Byte_hobbit((LPBYTE)0x0041B034, ringBlue, ringBlue);
-			change_4Byte_hobbit((LPDWORD)0x0041B035, 0x142444C7, 0x142444C7);
-			change_4Byte_hobbit((LPDWORD)0x0041B039, 0x3F800000, 0x3F800000);
-			change_1Byte_hobbit((LPBYTE)0x0041B03D, 0x90, 0x90);
+			change_value_hobbit<BYTE>((LPBYTE)0x0041B018, ringGreen, ringGreen);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B019, 0xC747FF31, 0xC747FF31);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B01D, 0x005EF086, 0x005EF086);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B021, 0x00000000, 0x00000000);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B025, 0x2444C600, 0x2444C600);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B029, 0x44C6FF13, 0x44C6FF13);
+			change_value_hobbit<WORD>((LPWORD)0x0041B02D, 0x1224, 0x1224);
+			change_value_hobbit<BYTE>((LPBYTE)0x0041B02F, ringRed, ringRed); //функция изменения цвета кольца
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B030, 0x102444C6, 0x102444C6);
+			change_value_hobbit<BYTE>((LPBYTE)0x0041B034, ringBlue, ringBlue);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B035, 0x142444C7, 0x142444C7);
+			change_value_hobbit<DWORD>((LPDWORD)0x0041B039, 0x3F800000, 0x3F800000);
+			change_value_hobbit<BYTE>((LPBYTE)0x0041B03D, 0x90, 0x90);
 		}
 		if (ImGui::Checkbox(lang ? "Black screen when entering invis" : (const char*)u8"Черный экран при входе в инвиз", &blackScreenVhod)) {
-			change_1Byte_hobbit((LPVOID)0x00423D6A, 0x00, 0x01); //функция рендера волумов
+			change_value_hobbit<BYTE>((LPVOID)0x00423D6A, 0x00, 0x01); //функция рендера волумов
 		}
 		if (ImGui::Checkbox(lang ? "Black screen when exiting invis" : (const char*)u8"Черный экран при выходе из инвиза", &blackScreenVihod)) {
-			change_1Byte_hobbit((LPVOID)0x00423D31, 0x00, 0x01); //функция рендера волумов
+			change_value_hobbit<BYTE>((LPVOID)0x00423D31, 0x00, 0x01); //функция рендера волумов
 		}
 		if (ImGui::Checkbox(lang ? "Smooth transition of transparency" : (const char*)u8"Плавный переход прозрачности", &plavPerehod)) {
-			change_1Byte_hobbit((LPVOID)0x00423CD9, 0x00, 0x01); //функция рендера волумов
+			change_value_hobbit<BYTE>((LPVOID)0x00423CD9, 0x00, 0x01); //функция рендера волумов
 		}
 
 		static uint8_t alphaNaVhod = 128;
@@ -1756,7 +1760,7 @@ void gui::Render() noexcept
 		tempValue = std::clamp(tempValue, 0, 255); // Ограничение перед записью
 		alphaNaVhod = static_cast<int8_t>(tempValue); // Приведение обратно к int8_t
 		if (ImGui::Button(lang ? "Apply Bilbo's transparency to the input" : (const char*)u8"Применить прозрачность Бильбо на входе")) {
-			change_1Byte_hobbit((LPBYTE)0x00423D06, alphaNaVhod, alphaNaVhod);
+			change_value_hobbit<BYTE>((LPBYTE)0x00423D06, alphaNaVhod, alphaNaVhod);
 		}
 
 		static uint8_t alphaNaVihod = 255;
@@ -1766,7 +1770,7 @@ void gui::Render() noexcept
 		tempValue = std::clamp(tempValue, 0, 255); // Ограничение перед записью
 		alphaNaVihod = static_cast<int8_t>(tempValue); // Приведение обратно к int8_t
 		if (ImGui::Button(lang ? "Apply Bilbo's transparency to the output" : (const char*)u8"Применить прозрачность Бильбо на выходе")) {
-			change_1Byte_hobbit((LPBYTE)0x00423CDC, alphaNaVihod, alphaNaVihod);
+			change_value_hobbit<BYTE>((LPBYTE)0x00423CDC, alphaNaVihod, alphaNaVihod);
 		}
 
 		static uint8_t tuman = 69;
@@ -1776,7 +1780,7 @@ void gui::Render() noexcept
 		tempValue = std::clamp(tempValue, 65, 75); // Ограничение перед записью
 		tuman = static_cast<int8_t>(tempValue); // Приведение обратно к int8_t
 		if (ImGui::Button(lang ? "Apply fog" : (const char*)u8"Применить туман")) {
-			change_1Byte_hobbit((LPBYTE)0x00777B6F, tuman, tuman);
+			change_value_hobbit<BYTE>((LPBYTE)0x00777B6F, tuman, tuman);
 		}
 		ImGui::Unindent();
 	}
@@ -1795,6 +1799,10 @@ void gui::Render() noexcept
 		}
 		if (ImGui::Checkbox(lang ? "PickupAll mod" : (const char*)u8"Все поднять мод", &pickupall)) {
 		}
+		if (ImGui::Checkbox(lang ? "CanKillAll mod" : (const char*)u8"Можно убить всех мод", &cankillall)) {
+		}
+		if (ImGui::Checkbox(lang ? "allAggress mod" : (const char*)u8"Все агрессивны мод", &allAgress)) {
+		}
 		ImGui::Unindent();
 	}
 	if (ImGui::CollapsingHeader(lang ? "Skinchanger" : (const char*)u8"Скинчейнджер"))
@@ -1812,23 +1820,26 @@ void gui::Render() noexcept
 	if (pickupall == true) {
 		PickupAll();
 	}
+	if (cankillall == true or allAgress == true) {
+		CanKillAll(cankillall, allAgress);
+	}
 	if (stamina == true)
-		change_float_hobbit(ukazatel_stamina + 641, 10);
+		change_value_hobbit<float>((LPDWORD)ukazatel_stamina + 641, 10);
 
 
 	if (lock_animation == true)
 	{
 		if (timer_animation >= 0.1) {
-			change_float_hobbit(ukazatel_animation + 332, savedPoint.frame_animation);
+			change_value_hobbit<float>((LPDWORD)ukazatel_animation + 332, savedPoint.frame_animation);
 			timer_animation = 0.0;
 		}
 		else timer_animation += ImGui::GetIO().DeltaTime;
 	}
 	if (stones == true)
-		change_float_hobbit((LPVOID)0x0075BDB4, 10);
+		change_value_hobbit<float>((LPVOID)0x0075BDB4, 10);
 
 	showObjectList();
-	//showNPCTest();
+	showNPCTest();
 	showSpawnTest();
 	showPropsTest();
 
@@ -1838,8 +1849,8 @@ void gui::Render() noexcept
 	ImGui::Text("");
 	ImGui::Text("");
 	ImGui::Text("");
-	//change_float_hobbit((LPVOID)0x0F96D9D0, save_float_hobbit((LPVOID)0x0F9685E8));
-	//change_float_hobbit((LPVOID)0x0F96D9D8, save_float_hobbit((LPVOID)0x0F9685F4));
+	//change_value_hobbit<float>((LPVOID)0x0F96D9D0, read_value_hobbit<float>((LPVOID)0x0F9685E8));
+	//change_value_hobbit<float>((LPVOID)0x0F96D9D8, read_value_hobbit<float>((LPVOID)0x0F9685F4));
 
 	ImGui::Text(lang ? "Our links" : (const char*)u8"Наши ссылки");
 	ImGui::Separator();
@@ -1866,11 +1877,11 @@ void gui::Render() noexcept
 
 void gui::SetTeleportPoint() noexcept
 {
-	savedPoint.ukazatel = ukazatel_hobbit((LPVOID)0x0075BA3C);
+	savedPoint.ukazatel = read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
 	ukazatel = savedPoint.ukazatel;
-	savedPoint.x = save_float_hobbit(ukazatel + 5);
-	savedPoint.y = save_float_hobbit(ukazatel + 6);
-	savedPoint.z = save_float_hobbit(ukazatel + 7);//функция установки точки телепортации
+	savedPoint.x = read_value_hobbit<float>((LPDWORD)ukazatel + 5);
+	savedPoint.y = read_value_hobbit<float>((LPDWORD)ukazatel + 6);
+	savedPoint.z = read_value_hobbit<float>((LPDWORD)ukazatel + 7);//функция установки точки телепортации
 }
 
 void gui::Teleport() noexcept
@@ -1880,11 +1891,11 @@ void gui::Teleport() noexcept
 	z = savedPoint.z;
 	ukazatel = savedPoint.ukazatel;
 	if (x) {
-		change_float_hobbit(ukazatel + 5, x);
-		change_float_hobbit(ukazatel + 281, x);
-		change_float_hobbit(ukazatel + 6, y);
-		change_float_hobbit(ukazatel + 282, y);
-		change_float_hobbit(ukazatel + 7, z);
-		change_float_hobbit(ukazatel + 283, z);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 5, x);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 281, x);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 6, y);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 282, y);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 7, z);
+		change_value_hobbit<float>((LPDWORD)ukazatel + 283, z);
 	}
 }
