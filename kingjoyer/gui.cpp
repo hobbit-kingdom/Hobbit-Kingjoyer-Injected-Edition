@@ -402,7 +402,7 @@ DWORD ukazatel_chesttime;
 LPBYTE currentLevel = (LPBYTE)(GetModuleBaseAddress(GetProcessID(L"Meridian.exe"), L"Meridian.exe") + 0x362B5C);
 
 bool debug = false;
-int lang = 0; // 0 - RUS , 1 - ENG
+int lang = 1; // 0 - RUS , 1 - ENG
 
 Point currentBilboPos;
 
@@ -749,18 +749,72 @@ static void showNPCTest(void)
 	}
 }
 
-static object *g_propsObject;
+static object* g_propsObject;
 static prop_array g_objectProps;
 static bool g_propsWindowOpen;
 
+static void formatGuidString(char* pBuffer, size_t bufferSize, const guid& value)
+{
+	uint32_t guid_high = uint32_t(value.Guid >> 32);
+	uint32_t guid_low = uint32_t(value.Guid);
+	sprintf_s(pBuffer, bufferSize, "%X_%X", guid_high, guid_low);
+}
+
+static bool tryParseGuidString(const char* pBuffer, guid& outGuid)
+{
+	uint32_t guid_high;
+	uint32_t guid_low;
+	unsigned long long fullGuid;
+
+	if (sscanf(pBuffer, "%X_%X", &guid_high, &guid_low) == 2) {
+		outGuid.Guid = (uint64_t(guid_high) << 32) | guid_low;
+		return true;
+	}
+
+	if (sscanf(pBuffer, "%llX", &fullGuid) == 1) {
+		outGuid.Guid = fullGuid;
+		return true;
+	}
+
+	return false;
+}
+
+static bool showGuidInputText(const char* pLabel, guid& value)
+{
+	char guidBuffer[32];
+	formatGuidString(guidBuffer, sizeof(guidBuffer), value);
+
+	ImGuiInputTextFlags flags = ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_EnterReturnsTrue;
+	bool submitted = ImGui::InputText(pLabel, guidBuffer, sizeof(guidBuffer), flags);
+	bool finishedEditing = submitted || ImGui::IsItemDeactivatedAfterEdit();
+
+	if (!finishedEditing)
+		return false;
+
+	guid parsedGuid;
+	if (!tryParseGuidString(guidBuffer, parsedGuid))
+		return false;
+
+	value = parsedGuid;
+	return true;
+}
+
+static bool showBBoxEditor(bbox& value)
+{
+	bool changed = false;
+	changed |= ImGui::InputFloat3("Min", (float*)&value.Min);
+	changed |= ImGui::InputFloat3("Max", (float*)&value.Max);
+	return changed;
+}
+
 static void showPropsWindow(void)
 {
-	if(ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen)) {
+	if (ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen)) {
 
 		ImGui::Columns(2, NULL, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2,2));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
-		for(int i = 0; i < g_objectProps.m_Count; i++) {
+		for (int i = 0; i < g_objectProps.m_Count; i++) {
 
 			// draw a line between rows
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
@@ -779,49 +833,93 @@ static void showPropsWindow(void)
 			ed_property prop;
 			g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
 
-			switch(g_objectProps.pData[i].m_PropType) {
-				case PROP_xbool: {
+			switch (g_objectProps.pData[i].m_PropType) {
+			case PROP_s32: {
+				if (ImGui::InputInt("", &prop.m_Value.m_s32Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
 
-					bool bVal = !!prop.m_Value.m_xboolValue;
-					if(ImGui::Checkbox("", &bVal)) {
-						prop.m_Value.m_xboolValue = xbool(bVal);
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					}
+			case PROP_enum: {
+				if (ImGui::InputInt("", &prop.m_Value.m_s32Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
 
-					break;
+			case PROP_xbool: {
+
+				bool bVal = !!prop.m_Value.m_xboolValue;
+				if (ImGui::Checkbox("", &bVal)) {
+					prop.m_Value.m_xboolValue = xbool(bVal);
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				}
 
-				case PROP_f32: {
-					if(ImGui::InputFloat("", &prop.m_Value.m_f32Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);	
-					break;
+				break;
+			}
+
+			case PROP_f32: {
+				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_angle: {
+				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_string:
+			case PROP_resource: {
+				prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = 0;
+				if (ImGui::InputText("", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_guid: {
+				if (showGuidInputText("", prop.m_Value.m_guidValue))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_vector3: {
+				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_radian3: {
+				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_bbox: {
+				if (showBBoxEditor(prop.m_Value.m_BBox))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_xcolor: {
+				float rgba[4];
+				rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
+				rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
+				rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
+				rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
+
+				if (ImGui::ColorEdit4("", rgba)) {
+					prop.m_Value.m_xcolorValue.R = rgba[0] * 255;
+					prop.m_Value.m_xcolorValue.G = rgba[1] * 255;
+					prop.m_Value.m_xcolorValue.B = rgba[2] * 255;
+					prop.m_Value.m_xcolorValue.A = rgba[3] * 255;
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				}
 
-				case PROP_vector3: {
-					if(ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);	
-					break;
-				}
-
-				case PROP_xcolor: {
-					float rgba[4];
-					rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
-					rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
-					rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
-					rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
-
-					if(ImGui::ColorEdit4("", rgba)) {
-						prop.m_Value.m_xcolorValue.R = rgba[0] * 255;
-						prop.m_Value.m_xcolorValue.G = rgba[1] * 255;
-						prop.m_Value.m_xcolorValue.B = rgba[2] * 255;
-						prop.m_Value.m_xcolorValue.A = rgba[3] * 255;
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					}
-
-					break;
-				}
-				default:
-					ImGui::Text("");
+				break;
+			}
+			default:
+				ImGui::Text("");
 			}
 
 			ImGui::PopID();
@@ -844,31 +942,37 @@ static void showPropsTest(void)
 	if (ImGui::CollapsingHeader(lang ? "Props Test" : (const char*)u8"Тест Свойств Объектов"))
 	{
 		static char _object_Guid[32];
-		
+
 
 		ImGui::Text(_object_Status);
 
 		ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", _object_Guid, sizeof(_object_Guid));
 
 		if (ImGui::Button(lang ? "Query Object" : (const char*)u8"Свойтва Объекта")) {
-			uint32_t guid_high;
-			uint32_t guid_low;
+			guid objectGuid;
 
-			if(sscanf(_object_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
-				object *pObject = (object*)getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
-				if(pObject) {
+			if (tryParseGuidString(_object_Guid, objectGuid)) {
+				object* pObject = (object*)getObjectByGUID(objectGuid.Guid);
+				if (pObject) {
 					strcpy_s(_object_Status, "Object OK");
 					g_objectProps.Clear();
 					pObject->EnumerateProperties(g_objectProps);
 					g_propsObject = pObject;
-				} else
+				}
+				else {
 					strcpy_s(_object_Status, "Object Not found");
-			} else {
+					g_objectProps.Clear();
+					g_propsObject = NULL;
+				}
+			}
+			else {
 				strcpy_s(_object_Status, "Invalid GUID");
+				g_objectProps.Clear();
+				g_propsObject = NULL;
 			}
 		}
 
-		if(ImGui::Button(lang ? "ShowPropertiesWindow" : (const char*)u8"Показать Окно Свойств")) {
+		if (ImGui::Button(lang ? "ShowPropertiesWindow" : (const char*)u8"Показать Окно Свойств")) {
 			g_propsWindowOpen = true;
 		}
 	}
@@ -1821,7 +1925,7 @@ void gui::Render() noexcept
 		PickupAll();
 	}
 	if (cankillall == true or allAgress == true) {
-		CanKillAll(cankillall, allAgress);
+		//CanKillAll(cankillall, allAgress);
 	}
 	if (stamina == true)
 		change_value_hobbit<float>((LPDWORD)ukazatel_stamina + 641, 10);
@@ -1869,7 +1973,7 @@ void gui::Render() noexcept
 
 	ImGui::End();
 
-	if(g_propsWindowOpen)
+	if (g_propsWindowOpen)
 		showPropsWindow();
 }
 
