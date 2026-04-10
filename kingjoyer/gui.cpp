@@ -6,6 +6,7 @@
 #include "PickupAll.h"
 #include "functions.h"
 #include "CanKillAll.h"
+#include "PathNavigator.h"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
@@ -391,6 +392,7 @@ struct Point {
 	DWORD ukazatel_chesttime = 0x00;
 };
 Point savedPoint;
+bool hasSavedTeleportPoint = false;
 float x, y, z;
 float frame_animation;
 DWORD ukazatel;
@@ -413,6 +415,7 @@ DWORD xPointer = 0x00;
 float xPos = 0;
 float yPos = 0;
 float zPos = 0;
+float rotY = 0;
 float timer_animation = 0;
 
 float numberOfAttacks = 0;
@@ -1464,6 +1467,12 @@ void gui::Render() noexcept
 
 		auto tim = duration_cast<seconds>(high_resolution_clock::now() - start).count();
 
+		xPointer = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C);
+		xPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c4));
+		yPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c8));
+		zPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7cC));
+		rotY = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7AC));
+
 		if (tim > 2)
 		{
 			start = high_resolution_clock::now();
@@ -1494,16 +1503,28 @@ void gui::Render() noexcept
 			totalChestsMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 92));
 			totalQuestsMissed = read_value_hobbit<float>((LPVOID)(0x0075C034 + 96));
 			amountOfBlocks = read_value_hobbit<float>((LPVOID)(0x0075C034 + 100));
-
-			xPointer = read_value_hobbit<DWORD>((LPDWORD)0x0075BA3C);
-			xPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c4));
-			yPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7c8));
-			zPos = read_value_hobbit<float>((LPDWORD)(xPointer + 0x7cC));
 		}
 
 		ImGui::Text("X: %g", xPos); ImGui::SameLine();
 		ImGui::Text("Y: %g", yPos); ImGui::SameLine();
-		ImGui::Text("Z: %g", zPos);
+		ImGui::Text("Z: %g", zPos); ImGui::SameLine();
+		ImGui::Text("Rot: %g", rotY);
+		ImGui::Text(
+			"Auto Nav: %s (%d/%d)%s",
+			path_navigator::GetStatusText(),
+			path_navigator::GetCurrentWaypointIndex(),
+			path_navigator::GetPathPointCount(),
+			path_navigator::IsCalibrated() ? "" : " [uncalibrated]"
+		);
+		float navTargetX = 0.0f;
+		float navTargetY = 0.0f;
+		float navTargetZ = 0.0f;
+		if (gui::GetTeleportPoint(navTargetX, navTargetY, navTargetZ)) {
+			ImGui::Text("Nav Target: %g %g %g", navTargetX, navTargetY, navTargetZ);
+		}
+		else {
+			ImGui::Text("Nav Target: not set");
+		}
 
 		ImGui::Text(lang ? "Number Of Attacks: %g" : (const char*)u8"Количество Ударов: %g", numberOfAttacks);
 		ImGui::Text(lang ? "Number Of Jumps: %g" : (const char*)u8"Количество Прыжков: %g", numberOfJumps);
@@ -1986,6 +2007,7 @@ void gui::SetTeleportPoint() noexcept
 	savedPoint.x = read_value_hobbit<float>((LPDWORD)ukazatel + 5);
 	savedPoint.y = read_value_hobbit<float>((LPDWORD)ukazatel + 6);
 	savedPoint.z = read_value_hobbit<float>((LPDWORD)ukazatel + 7);//функция установки точки телепортации
+	hasSavedTeleportPoint = true;
 }
 
 void gui::Teleport() noexcept
@@ -2002,4 +2024,22 @@ void gui::Teleport() noexcept
 		change_value_hobbit<float>((LPDWORD)ukazatel + 7, z);
 		change_value_hobbit<float>((LPDWORD)ukazatel + 283, z);
 	}
+}
+
+bool gui::HasTeleportPoint() noexcept
+{
+	return hasSavedTeleportPoint;
+}
+
+bool gui::GetTeleportPoint(float& outX, float& outY, float& outZ) noexcept
+{
+	if (!hasSavedTeleportPoint)
+	{
+		return false;
+	}
+
+	outX = savedPoint.x;
+	outY = savedPoint.y;
+	outZ = savedPoint.z;
+	return true;
 }

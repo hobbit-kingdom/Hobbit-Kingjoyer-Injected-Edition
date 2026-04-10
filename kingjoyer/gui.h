@@ -43,6 +43,8 @@ namespace gui
 	//functions
 	void SetTeleportPoint() noexcept;
 	void Teleport() noexcept;
+	bool HasTeleportPoint() noexcept;
+	bool GetTeleportPoint(float& x, float& y, float& z) noexcept;
 
 	//keybinds
 	inline bool enableKeybinds = true;

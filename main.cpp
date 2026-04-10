@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "includes.h"
+#include "kingjoyer/PathNavigator.h"
 
 typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
@@ -132,6 +133,7 @@ void loadHotkeysFromConfig() {
 	hotkeys["teleport"] = mapKey(reader.Get("Hotkeys", "teleport", "T"));
 
 	hotkeys["ressurect"] = mapKey(reader.Get("Hotkeys", "ressurect", "X"));
+	hotkeys["autoNavigate"] = mapKey(reader.Get("Hotkeys", "autoNavigate", "F7"));
 	// hotkeys["endLevel"] = mapKey(reader.Get("Hotkeys", "endLevel", "0"));
 }
 
@@ -174,6 +176,7 @@ void keybindings()
 	if (GetAsyncKeyState(hotkeys["teleport"]) & 1) gui::Teleport();
 
 	if (GetAsyncKeyState(hotkeys["ressurect"]) & 1) functions::ressurect();
+	if (GetAsyncKeyState(hotkeys["autoNavigate"]) & 1) path_navigator::Toggle(window);
 	// if (GetAsyncKeyState(hotkeys["endLevel"]) & 1) functions::endLevel();
 
 }
@@ -298,6 +301,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 	if (GetAsyncKeyState(0x52) & 1) openMenu = !openMenu;
 
 	if (gui::enableKeybinds) keybindings();
+	path_navigator::Update(window);
 
 	if (gui::drawSettings) DrawSettings();
 
@@ -412,6 +416,9 @@ BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD fdwReason, LPVOID)
 
 	if (fdwReason == DLL_PROCESS_ATTACH) {
 		CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)mainThread, NULL, 0, NULL));
+	}
+	else if (fdwReason == DLL_PROCESS_DETACH) {
+		path_navigator::Shutdown();
 	}
 
 	return TRUE;
