@@ -128,18 +128,19 @@ class bin_in
 // props
 enum PROP_Type
 {
-	PROP_s32      = 0x01,
-	PROP_f32      = 0x02,
-	PROP_xbool    = 0x03,
-	PROP_string   = 0x04,
-	PROP_resource = 0x07,
-	PROP_vector3  = 0x08,
-	PROP_bbox     = 0x09,
-	PROP_angle    = 0x0a,
-	PROP_radian3  = 0x0b,
-	PROP_enum     = 0x0c,
-	PROP_guid     = 0x0f,
-	PROP_xcolor   = 0x11,
+	PROP_s32          = 0x01,
+	PROP_f32          = 0x02,
+	PROP_xbool        = 0x03,
+	PROP_string       = 0x04,
+	PROP_resource     = 0x07,
+	PROP_vector3      = 0x08,
+	PROP_bbox         = 0x09,
+	PROP_angle        = 0x0a,
+	PROP_radian3      = 0x0b,
+	PROP_enum_s32     = 0x0c,
+	PROP_enum_xstring = 0x0d,
+	PROP_guid         = 0x0f,
+	PROP_xcolor       = 0x11,
 
 	_PROP_forcedword = 0x7fffffff
 };
@@ -149,7 +150,9 @@ struct ed_property_desc
 	char m_Name[128];
 	PROP_Type m_PropType;
 	u32 m_Flags;
-	char data[120+8];
+	char data[120];
+	void *m_pArray;
+	void *p2;
 };
 
 struct ed_property_value
@@ -197,6 +200,23 @@ class prop_array // xarray<ed_property_desc>
 	}
 
 	void Clear();
+};
+
+struct xstring
+{
+	char *m_pData;
+	char  m_LocalData[32];
+	s32   m_Length;
+	s32   unk1;
+};
+
+class xstring_array
+{
+	public:
+	s32 unk1;
+	s32 unk2;
+	s32 m_Count;
+	struct xstring *m_pData;
 };
 
 #endif

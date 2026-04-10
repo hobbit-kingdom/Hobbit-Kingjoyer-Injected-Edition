@@ -843,32 +843,19 @@ static void showPropsWindow(void)
 				break;
 			}
 
-			case PROP_enum: {
-				if (ImGui::InputInt("", &prop.m_Value.m_s32Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
-
-			case PROP_xbool: {
-
-				bool bVal = !!prop.m_Value.m_xboolValue;
-				if (ImGui::Checkbox("", &bVal)) {
-					prop.m_Value.m_xboolValue = xbool(bVal);
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				}
-
-				break;
-			}
-
 			case PROP_f32: {
 				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
-			case PROP_angle: {
-				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+			case PROP_xbool: {
+				bool bVal = !!prop.m_Value.m_xboolValue;
+				if (ImGui::Checkbox("", &bVal)) {
+					prop.m_Value.m_xboolValue = xbool(bVal);
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				}
+
 				break;
 			}
 
@@ -880,14 +867,20 @@ static void showPropsWindow(void)
 				break;
 			}
 
-			case PROP_guid: {
-				if (showGuidInputText("", prop.m_Value.m_guidValue))
+			case PROP_vector3: {
+				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
-			case PROP_vector3: {
-				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+			case PROP_bbox: {
+				if (showBBoxEditor(prop.m_Value.m_BBox))
+					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+				break;
+			}
+
+			case PROP_angle: {
+				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
@@ -898,8 +891,44 @@ static void showPropsWindow(void)
 				break;
 			}
 
-			case PROP_bbox: {
-				if (showBBoxEditor(prop.m_Value.m_BBox))
+			case PROP_enum_s32: {
+				xstring_array *pArr = (xstring_array *)g_objectProps.pData[i].m_pArray;
+				u32 idx = (u32)prop.m_Value.m_s32Value;
+				const char *preview = idx < pArr->m_Count ? pArr->m_pData[idx].m_pData : "INVALID";
+
+				if (ImGui::BeginCombo("", preview)) {
+					for(u32 j = 0; j < (u32)pArr->m_Count; j++) {
+						const char *elem = pArr->m_pData[j].m_pData;
+						if(ImGui::Selectable(elem, j == idx)) {
+							prop.m_Value.m_s32Value = j;
+							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+						}
+					}
+					ImGui::EndCombo();
+				}
+				break;
+			}
+
+			case PROP_enum_xstring: {
+				xstring_array *pArr = (xstring_array *)g_objectProps.pData[i].m_pArray;
+				const char *preview = prop.m_Value.m_ResourceName;
+
+				if (ImGui::BeginCombo("", preview)) {
+					for(u32 j = 0; j < (u32)pArr->m_Count; j++) {
+						const char *elem = pArr->m_pData[j].m_pData;
+						if(ImGui::Selectable(elem, strcmp(preview,elem) == 0)) {
+							strncpy(prop.m_Value.m_ResourceName, elem, sizeof(prop.m_Value.m_ResourceName));
+							prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName)-1] = '\0';
+							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+						}
+					}
+					ImGui::EndCombo();
+				}
+				break;
+			}
+
+			case PROP_guid: {
+				if (showGuidInputText("", prop.m_Value.m_guidValue))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
