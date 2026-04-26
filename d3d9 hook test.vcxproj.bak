@@ -88,7 +88,6 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -105,12 +104,10 @@
     <ClInclude Include="inireader\INIReader.h" />
     <ClInclude Include="kiero.h" />
     <ClInclude Include="kingjoyer\byte_functions.h" />
-    <ClInclude Include="kingjoyer\CanKillAll.h" />
     <ClInclude Include="kingjoyer\functions.h" />
     <ClInclude Include="kingjoyer\gui.h" />
     <ClInclude Include="kingjoyer\HobbitMemoryAccess.h" />
     <ClInclude Include="kingjoyer\MemoryAccess.h" />
-    <ClInclude Include="kingjoyer\PathNavigator.h" />
     <ClInclude Include="kingjoyer\PickupAll.h" />
     <ClInclude Include="kingjoyer\Randommod.h" />
     <ClInclude Include="meridian\meridian.hpp" />
@@ -135,12 +132,10 @@
     <ClCompile Include="inireader\INIReader.cpp" />
     <ClCompile Include="kiero.cpp" />
     <ClCompile Include="kingjoyer\byte_functions.cpp" />
-    <ClCompile Include="kingjoyer\CanKillAll.cpp" />
     <ClCompile Include="kingjoyer\functions.cpp" />
     <ClCompile Include="kingjoyer\gui.cpp" />
     <ClCompile Include="kingjoyer\HobbitMemoryAccess.cpp" />
     <ClCompile Include="kingjoyer\MemoryAccess.cpp" />
-    <ClCompile Include="kingjoyer\PathNavigator.cpp" />
     <ClCompile Include="kingjoyer\PickupAll.cpp" />
     <ClCompile Include="kingjoyer\Randommod.cpp" />
     <ClCompile Include="main.cpp" />

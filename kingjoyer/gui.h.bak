@@ -45,7 +45,7 @@ namespace gui
 	void Teleport() noexcept;
 	bool HasTeleportPoint() noexcept;
 	bool GetTeleportPoint(float& x, float& y, float& z) noexcept;
-    void RefreshLayers() noexcept;
+void RefreshLayers() noexcept;
 	void ReloadSelectedLayers() noexcept;
 
 	//keybinds
