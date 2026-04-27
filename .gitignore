@@ -3,6 +3,8 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+./"The Kingjoyer Injected Edition"
+
 # User-specific files
 *.rsuser
 *.suo

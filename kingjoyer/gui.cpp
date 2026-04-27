@@ -1000,7 +1000,7 @@ static void showNPCTest(void)
 	static char _NPC_Status[128] = "NOSTATUS";
 	static char _NPC_Guid[128] = "0D8AD910_E8851002";
 
-	if (ImGui::CollapsingHeader(lang ? "NPC Test" : (const char*)u8"НПС Тест"))
+	if (ImGui::CollapsingHeader(lang ? "NPC Anim" : (const char*)u8"НПС Анимация"))
 	{
 		ImGui::Text(_NPC_Status);
 
@@ -1014,32 +1014,67 @@ static void showNPCTest(void)
 				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
 				if (pNPC) {
 					strcpy_s(_NPC_Status, "NPC OK");
+					// Clear and refresh the list
+					_NPC_anim_list.clear();
 					getNPCAnimList(pNPC, _NPC_anim_list);
 				}
-				else
+				else {
 					strcpy_s(_NPC_Status, "NPC Not found");
+					_NPC_anim_list.clear();
+				}
 			}
 			else {
 				strcpy_s(_NPC_Status, "Invalid GUID");
+				_NPC_anim_list.clear();
 			}
 		}
 
 		ImGui::Text("");
 
-		ImGui::InputText(lang ? "Anim ID:" : (const char*)u8"ID Анимации", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
-		int anim_id = atoi(_NPC_anim);
+		// Optional: Keep manual input for custom anim IDs
+		if (ImGui::TreeNode(lang ? "Manual Input" : (const char*)u8"Ручной ввод")) {
+			ImGui::InputText(lang ? "Anim ID:" : (const char*)u8"ID Анимации", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
+			int anim_id = atoi(_NPC_anim);
 
-		if (ImGui::Button(lang ? "Do Set Anim" : (const char*)u8"Установить Анимацию") && pNPC) {
-			setNPCAnim(pNPC, anim_id);
+			if (ImGui::Button(lang ? "Do Set Anim" : (const char*)u8"Установить Анимацию") && pNPC) {
+				setNPCAnim(pNPC, anim_id);
+			}
+			ImGui::TreePop();
 		}
 
 		ImGui::Text("");
 
-		if (ImGui::BeginListBox(lang ? "Anims:" : (const char*)u8"Анимации:")) {
-			for (const std::string& str : _NPC_anim_list)
-				ImGui::Selectable(str.c_str());
+
+		// Alternative simpler version (uncomment if you prefer this style):
+
+		if (ImGui::BeginListBox(lang ? "Anims:" : (const char*)u8"Анимации:", ImVec2(-FLT_MIN, 300))) {
+			for (int i = 0; i < _NPC_anim_list.size(); i++) {
+				const std::string& str = _NPC_anim_list[i];
+				int anim_id = 0;
+				sscanf(str.c_str(), "%d", &anim_id);
+
+				ImGui::PushID(i);
+
+				// Calculate button width
+				float playBtnWidth = 50.0f;
+				float selectableWidth = ImGui::GetContentRegionAvail().x - playBtnWidth - ImGui::GetStyle().ItemSpacing.x;
+
+				// Selectable that doesn't fill entire width
+				if (ImGui::Selectable(str.c_str(), false, ImGuiSelectableFlags_None, ImVec2(selectableWidth, 0))) {
+					if (pNPC) setNPCAnim(pNPC, anim_id);
+				}
+
+				// Play button on same line
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Play") && pNPC) {
+					setNPCAnim(pNPC, anim_id);
+				}
+
+				ImGui::PopID();
+			}
 			ImGui::EndListBox();
 		}
+
 	}
 }
 
@@ -1103,12 +1138,43 @@ static bool showBBoxEditor(bbox& value)
 
 static void showPropsWindow(void)
 {
-	if (ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen)) {
+	if (!ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen))
+	{
+		ImGui::End();
+		return;
+	}
 
+	// Basic null checks before proceeding
+	if (!g_propsObject || !g_objectProps.pData || g_objectProps.m_Count <= 0)
+	{
+		ImGui::TextDisabled("No object selected or invalid data");
+		ImGui::End();
+		return;
+	}
+
+	// Sanity check count to prevent insane iterations
+	if (g_objectProps.m_Count > 10000)
+	{
+		ImGui::TextDisabled("Invalid property count: %d", g_objectProps.m_Count);
+		g_propsWindowOpen = false;
+		ImGui::End();
+		return;
+	}
+
+	__try
+	{
 		ImGui::Columns(2, NULL, true);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
-		for (int i = 0; i < g_objectProps.m_Count; i++) {
+		for (int i = 0; i < g_objectProps.m_Count; i++)
+		{
+			// Validate index and pointer before accessing
+			if (!g_objectProps.pData || !g_objectProps.pData[i].m_Name)
+				continue;
+
+			// Check if name pointer is readable (quick validation)
+			if (IsBadStringPtrA(g_objectProps.pData[i].m_Name, 256))
+				continue;
 
 			// draw a line between rows
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
@@ -1122,44 +1188,44 @@ static void showPropsWindow(void)
 			ImGui::NextColumn();
 			ImGui::PushItemWidth(-1);
 
-			ImGui::PushID(g_objectProps.pData[i].m_Name); // to not confuse imgui
+			ImGui::PushID(i); // Use index instead of potentially unstable string pointer
 
-			ed_property prop;
+			ed_property prop = { 0 };
 			g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
 
-			switch (g_objectProps.pData[i].m_PropType) {
+			switch (g_objectProps.pData[i].m_PropType)
+			{
 			case PROP_s32: {
-				if (ImGui::InputInt("", &prop.m_Value.m_s32Value))
+				if (ImGui::InputInt("##s32", &prop.m_Value.m_s32Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
 			case PROP_f32: {
-				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+				if (ImGui::InputFloat("##f32", &prop.m_Value.m_f32Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
 			case PROP_xbool: {
 				bool bVal = !!prop.m_Value.m_xboolValue;
-				if (ImGui::Checkbox("", &bVal)) {
+				if (ImGui::Checkbox("##xbool", &bVal)) {
 					prop.m_Value.m_xboolValue = xbool(bVal);
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				}
-
 				break;
 			}
 
 			case PROP_string:
 			case PROP_resource: {
 				prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = 0;
-				if (ImGui::InputText("", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
+				if (ImGui::InputText("##str", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
 			case PROP_vector3: {
-				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+				if (ImGui::InputFloat3("##vec3", (float*)&prop.m_Value.m_vec3Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
@@ -1171,27 +1237,43 @@ static void showPropsWindow(void)
 			}
 
 			case PROP_angle: {
-				if (ImGui::InputFloat("", &prop.m_Value.m_f32Value))
+				if (ImGui::InputFloat("##angle", &prop.m_Value.m_f32Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
 			case PROP_radian3: {
-				if (ImGui::InputFloat3("", (float*)&prop.m_Value.m_vec3Value))
+				if (ImGui::InputFloat3("##rad3", (float*)&prop.m_Value.m_vec3Value))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
 
 			case PROP_enum_s32: {
-				xstring_array *pArr = (xstring_array *)g_objectProps.pData[i].m_pArray;
-				u32 idx = (u32)prop.m_Value.m_s32Value;
-				const char *preview = idx < pArr->m_Count ? pArr->m_pData[idx].m_pData : "INVALID";
+				xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
+				if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
+					break;
 
-				if (ImGui::BeginCombo("", preview)) {
-					for(u32 j = 0; j < (u32)pArr->m_Count; j++) {
-						const char *elem = pArr->m_pData[j].m_pData;
-						if(ImGui::Selectable(elem, j == idx)) {
-							prop.m_Value.m_s32Value = j;
+				s32 sIdx = prop.m_Value.m_s32Value;
+				if (sIdx < 0 || sIdx >= (s32)pArr->m_Count)
+					break;
+
+				const char* preview = (sIdx >= 0 && sIdx < (s32)pArr->m_Count && pArr->m_pData)
+					? pArr->m_pData[sIdx].m_pData : "INVALID";
+
+				if (!IsBadStringPtrA(preview, 256) && ImGui::BeginCombo("##enums32", preview))
+				{
+					for (u32 j = 0; j < (u32)pArr->m_Count; j++)
+					{
+						if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
+							break;
+
+						const char* elem = pArr->m_pData[j].m_pData;
+						if (!elem || IsBadStringPtrA(elem, 256))
+							continue;
+
+						if (ImGui::Selectable(elem, (s32)j == sIdx))
+						{
+							prop.m_Value.m_s32Value = (s32)j;
 							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 						}
 					}
@@ -1201,15 +1283,29 @@ static void showPropsWindow(void)
 			}
 
 			case PROP_enum_xstring: {
-				xstring_array *pArr = (xstring_array *)g_objectProps.pData[i].m_pArray;
-				const char *preview = prop.m_Value.m_ResourceName;
+				xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
+				if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
+					break;
 
-				if (ImGui::BeginCombo("", preview)) {
-					for(u32 j = 0; j < (u32)pArr->m_Count; j++) {
-						const char *elem = pArr->m_pData[j].m_pData;
-						if(ImGui::Selectable(elem, strcmp(preview,elem) == 0)) {
+				const char* preview = prop.m_Value.m_ResourceName;
+				if (IsBadStringPtrA(preview, 256))
+					break;
+
+				if (ImGui::BeginCombo("##enumstr", preview))
+				{
+					for (u32 j = 0; j < (u32)pArr->m_Count; j++)
+					{
+						if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
+							break;
+
+						const char* elem = pArr->m_pData[j].m_pData;
+						if (!elem || IsBadStringPtrA(elem, 256))
+							continue;
+
+						if (ImGui::Selectable(elem, strcmp(preview, elem) == 0))
+						{
 							strncpy(prop.m_Value.m_ResourceName, elem, sizeof(prop.m_Value.m_ResourceName));
-							prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName)-1] = '\0';
+							prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = '\0';
 							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 						}
 					}
@@ -1219,7 +1315,7 @@ static void showPropsWindow(void)
 			}
 
 			case PROP_guid: {
-				if (showGuidInputText("", prop.m_Value.m_guidValue))
+				if (showGuidInputText("##guid", prop.m_Value.m_guidValue))
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				break;
 			}
@@ -1231,31 +1327,39 @@ static void showPropsWindow(void)
 				rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
 				rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
 
-				if (ImGui::ColorEdit4("", rgba)) {
-					prop.m_Value.m_xcolorValue.R = rgba[0] * 255;
-					prop.m_Value.m_xcolorValue.G = rgba[1] * 255;
-					prop.m_Value.m_xcolorValue.B = rgba[2] * 255;
-					prop.m_Value.m_xcolorValue.A = rgba[3] * 255;
+				if (ImGui::ColorEdit4("##color", rgba))
+				{
+					prop.m_Value.m_xcolorValue.R = (u8)(rgba[0] * 255);
+					prop.m_Value.m_xcolorValue.G = (u8)(rgba[1] * 255);
+					prop.m_Value.m_xcolorValue.B = (u8)(rgba[2] * 255);
+					prop.m_Value.m_xcolorValue.A = (u8)(rgba[3] * 255);
 					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 				}
-
 				break;
 			}
+
 			default:
-				ImGui::Text("");
+				ImGui::TextDisabled("Unknown type: %d", g_objectProps.pData[i].m_PropType);
+				break;
 			}
 
 			ImGui::PopID();
-
 			ImGui::PopItemWidth();
 			ImGui::NextColumn();
 		}
 
 		ImGui::PopStyleVar();
 		ImGui::Columns(1);
-
-		ImGui::End();
 	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+		// Memory corruption detected, close the window safely
+		g_propsWindowOpen = false;
+		ImGui::End();
+		return;
+	}
+
+	ImGui::End();
 }
 
 static void showPropsTest(void)
@@ -1405,7 +1509,7 @@ void gui::Render() noexcept
 	//ImGui::SetNextWindowPos({ 0, 0 });
 
 	ImGui::Begin(
-		"The Hobbit KINGJOYER v1.4 by king174rus and Mr_Kliff",
+		"The Hobbit KINGJOYER v1.5 by king174rus, Mr_Kliff & Modera",
 		&isRunning,
 		ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoCollapse
@@ -1416,10 +1520,10 @@ void gui::Render() noexcept
 
 	if (ImGui::Button(!lang ? "Change Language" : (const char*)u8"Поменять язык")) lang = !lang;
 
-	if (ImGui::Button("Demo Window"))
-		g_bDemoWindow = true;
-	if (g_bDemoWindow)
-		ImGui::ShowDemoWindow(&g_bDemoWindow);
+	//if (ImGui::Button("Demo Window"))
+	//	g_bDemoWindow = true;
+	//if (g_bDemoWindow)
+	//	ImGui::ShowDemoWindow(&g_bDemoWindow);
 
 	ImGui::Separator();
 	ImGui::Text("");

@@ -178,8 +178,8 @@ void keybindings()
 
 	if (GetAsyncKeyState(hotkeys["ressurect"]) & 1) functions::ressurect();
 	if (GetAsyncKeyState(hotkeys["autoNavigate"]) & 1) path_navigator::Toggle(window);
-    if (GetAsyncKeyState(hotkeys["reloadLayers"]) & 1) gui::ReloadSelectedLayers();
-	
+	if (GetAsyncKeyState(hotkeys["reloadLayers"]) & 1) gui::ReloadSelectedLayers();
+
 	// if (GetAsyncKeyState(hotkeys["endLevel"]) & 1) functions::endLevel();
 
 }
@@ -301,7 +301,9 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 		init = true;
 	}
 
-	if (GetAsyncKeyState(0x52) & 1) openMenu = !openMenu;
+	if (GetAsyncKeyState(0x52) & 1) {
+		openMenu = !openMenu;
+	}
 
 	if (gui::enableKeybinds) keybindings();
 	path_navigator::Update(window);

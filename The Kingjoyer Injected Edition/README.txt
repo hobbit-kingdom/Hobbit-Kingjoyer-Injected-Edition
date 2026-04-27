@@ -9,6 +9,7 @@ You can find the root by right clicking on the shortcut on your desktop and sele
 open file location.
 
 After that simply run Setup.bat and you will see a new shortcut appear on your desktop. Enjoy!
+Alternatively just run Injector.exe after you've started the game.
 
 If you want to change some keybinds open the file called keybinds.ini and change them there.
 
@@ -57,6 +58,7 @@ RUS:
 открыть местоположение файла.
 
 После этого просто запустите Setup.bat, и вы увидите новый ярлык на рабочем столе. Наслаждайтесь!
+Либо вы можете запустить Injector.exe после того как запустили игру.
 
 Если вы хотите изменить некоторые сочетания клавиш, откройте файл keybinds.ini и измените их там.
 
