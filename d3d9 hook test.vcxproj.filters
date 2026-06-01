@@ -28,6 +28,9 @@
     <Filter Include="meridian">
       <UniqueIdentifier>{163cdd0f-48bb-4b1b-baa3-48b0b6caa7a6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="sdk">
+      <UniqueIdentifier>{f33d2ed6-5b83-4ee9-bfb1-c35fffaac4f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes.h">
@@ -114,6 +117,42 @@
     <ClInclude Include="meridian\meridian.hpp">
       <Filter>meridian</Filter>
     </ClInclude>
+    <ClInclude Include="kingjoyer\CanKillAll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="kingjoyer\PathNavigator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\animation_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\bilbo_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\engine_core_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\meridian_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\meridian_types.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\npc_ai_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\hud_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\cinema_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\music_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\projectile_sdk.h">
+      <Filter>sdk</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -187,6 +226,12 @@
     </ClCompile>
     <ClCompile Include="meridian\meridian.cpp">
       <Filter>meridian</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\CanKillAll.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\PathNavigator.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

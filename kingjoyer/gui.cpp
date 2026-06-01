@@ -14,6 +14,16 @@
 
 #include "../meridian/meridian.hpp"
 
+#include "../sdk/meridian_types.h"
+#include "../sdk/engine_core_sdk.h"
+#include "../sdk/meridian_sdk.h"
+#include "../sdk/hud_sdk.h"
+#include "../sdk/projectile_sdk.h"
+#include "../sdk/bilbo_sdk.h"
+
+
+
+
 #include <iostream>
 #include "string"
 #include <chrono>
@@ -23,6 +33,9 @@
 #include <vector>
 #include <set>
 #include <sstream>
+
+
+
 
 using namespace std::chrono;
 using namespace std;
@@ -1661,6 +1674,85 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+
+	if (ImGui::CollapsingHeader(lang ? "SDK" : (const char*)u8"СДК"))
+	{
+		bilbo_sdk::bilbo* b = bilbo_sdk::fn::GetBilbo();
+
+		const char* name = bilbo_sdk::fn::State_GetName(
+			b, bilbo_sdk::field<bilbo_sdk::BilboState>(b, bilbo_sdk::off::CURRENT_STATE));
+
+		ImGui::Text(name);
+
+		if (ImGui::Button(lang ? "Ring Test" : (const char*)u8"Тест Кольца")) {
+
+			bilbo_sdk::fn::SetRingEquipped(b, /*equip=*/1, /*instant=*/1);
+		}
+
+		if (ImGui::Button(lang ? "resettosafepos" : (const char*)u8"резет в сейф позицию")) {
+			bilbo_sdk::fn::ResetToSafePos(bilbo_sdk::fn::GetBilbo());
+		}
+
+		if (ImGui::Button(lang ? "throwstone" : (const char*)u8"кинуть камень")) {
+			bilbo_sdk::fn::Combat_ThrowStone(bilbo_sdk::fn::GetBilbo(), 3);
+		}
+
+		static char _NPC_Status1[128] = "request destroy";
+		static char _NPC_Guid1[128] = "ABCABCAB_CABCABC0";
+
+		uint32_t guid_high1;
+		uint32_t guid_low1;
+
+		sscanf(_NPC_Guid1, "%X_%X", &guid_high1, &guid_low1);
+
+		uint64_t myN = (uint64_t(guid_high1) << 32) | guid_low1;
+
+		ImGui::Text((to_string(myN)).c_str());
+
+		ImGui::InputText(lang ? "Obj Guid:" : (const char*)u8"Obj Guid", _NPC_Guid1, sizeof(_NPC_Guid1));
+
+		if (ImGui::Button(lang ? "req destroy Obj" : (const char*)u8"req destory Obj")) {
+			uint32_t guid_high;
+			uint32_t guid_low;
+
+			if (sscanf(_NPC_Guid1, "%X_%X", &guid_high, &guid_low) == 2) {
+
+				object_RequestDestroy((object*)getObjectByGUID((uint64_t(guid_high) << 32) | guid_low));
+			}
+		}
+
+
+		float rect[4] = { 10, 10, 210, 50 };
+		hud_sdk::fn::DrawRect(rect, 0x80000000u, /*outline=*/0);
+
+
+
+		hud_sdk::fn::DrawAxisGizmo(20.0f);
+
+		hud_sdk::fn::RenderSkipControl(hud_sdk::fn::GetHud());
+
+
+
+		hud_sdk::fn::RenderSmallHealthBar(hud_sdk::fn::GetHud(), 1);
+
+		if (ImGui::Button(lang ? "project spawn" : (const char*)u8"proj spawn")) {
+
+			uint32_t guid_high;
+			uint32_t guid_low;
+
+			if (sscanf(_NPC_Guid1, "%X_%X", &guid_high, &guid_low) == 2) {
+
+				vector3 a = { 0,0,0 };
+				vector3 b = { 100,0,0 };
+
+				projectile_sdk::fn::CreateProjectileByType((uint32_t)projectile_sdk::eProjType::ThrownStone, myN, a, b);
+			}
+
+
+		}
+
+	}
+
 
 	if (ImGui::CollapsingHeader(lang ? "Cheats" : (const char*)u8"Читы"))
 	{

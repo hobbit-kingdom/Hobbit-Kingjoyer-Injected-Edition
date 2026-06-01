@@ -122,6 +122,16 @@
     <ClInclude Include="minhook\table32.h" />
     <ClInclude Include="minhook\table64.h" />
     <ClInclude Include="minhook\trampoline.h" />
+    <ClInclude Include="sdk\animation_sdk.h" />
+    <ClInclude Include="sdk\bilbo_sdk.h" />
+    <ClInclude Include="sdk\cinema_sdk.h" />
+    <ClInclude Include="sdk\engine_core_sdk.h" />
+    <ClInclude Include="sdk\hud_sdk.h" />
+    <ClInclude Include="sdk\meridian_sdk.h" />
+    <ClInclude Include="sdk\meridian_types.h" />
+    <ClInclude Include="sdk\music_sdk.h" />
+    <ClInclude Include="sdk\npc_ai_sdk.h" />
+    <ClInclude Include="sdk\projectile_sdk.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp" />

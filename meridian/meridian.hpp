@@ -18,6 +18,12 @@ class bin_in;
 class prop_array;
 class ed_property;
 
+// Keep OUR vector3/bbox/xstring (your code uses .X/.Y/.Z, .Min/.Max, .m_pData):
+// tell the reverse-engineered SDK's meridian_types.h NOT to define its duplicates.
+#define MERIDIAN_NO_MATH_TYPES
+#define MERIDIAN_NO_ENGINE_VALUE_TYPES
+#include "../sdk/meridian_types.h"
+
 struct xcolor
 {
 	u8 B, G, R, A;
@@ -41,22 +47,22 @@ struct guid
 
 class obj_mgr
 {
-	public:
-	guid CreateObject(const char *pObjectTypeName, guid GUID);
+public:
+	guid CreateObject(const char* pObjectTypeName, guid GUID);
 };
 
 extern obj_mgr g_ObjMgr;
 
 class object
 {
-	public:
+public:
 	virtual ~object() = 0;
 	virtual void OnInit() = 0;
 	virtual void OnKill() = 0;
 	virtual void __something1() = 0;
 	virtual void OnAdvanceLogic(f32 DeltaTime) = 0;
-	virtual void Move(vector3 &NewPos, xbool unk) = 0;
-	virtual void MoveRel(vector3 &DeltaPos, xbool unk) = 0;
+	virtual void Move(vector3& NewPos, xbool unk) = 0;
+	virtual void MoveRel(vector3& DeltaPos, xbool unk) = 0;
 	virtual void __something2() = 0;
 	virtual void __something3() = 0;
 	virtual void __something4() = 0;
@@ -72,7 +78,7 @@ class object
 	virtual void __something14() = 0;
 	virtual void __something15() = 0;
 	virtual void __something16() = 0;
-	virtual void OnImport(bin_in &BinIn) = 0;
+	virtual void OnImport(bin_in& BinIn) = 0;
 	virtual void __something17() = 0;
 	virtual void __something18() = 0;
 	virtual void __something19() = 0;
@@ -94,27 +100,27 @@ class object
 	virtual void __something35() = 0;
 	virtual void __something36() = 0;
 	virtual void __something37() = 0;
-	virtual void EnumerateProperties(prop_array &arr) = 0;
-	virtual void SetProperty(const char *pPropName, ed_property &newProp) = 0;
-	virtual void GetProperty(ed_property &outProp, const char *pPropName) = 0;
+	virtual void EnumerateProperties(prop_array& arr) = 0;
+	virtual void SetProperty(const char* pPropName, ed_property& newProp) = 0;
+	virtual void GetProperty(ed_property& outProp, const char* pPropName) = 0;
 
 	void SetObjSaveFlag(xbool flag);
 };
 
 class marker : public object
 {
-	public:
-	void SetText(const char *pNewText);
+public:
+	void SetText(const char* pNewText);
 };
 
 class bin_in
 {
-	public:
+public:
 	char data[8192];
 
 	bin_in();
 	~bin_in();
-	xbool OpenFile(const char *pName);
+	xbool OpenFile(const char* pName);
 
 	xbool ReadHeader();
 	xbool ReadFields();
@@ -128,19 +134,19 @@ class bin_in
 // props
 enum PROP_Type
 {
-	PROP_s32          = 0x01,
-	PROP_f32          = 0x02,
-	PROP_xbool        = 0x03,
-	PROP_string       = 0x04,
-	PROP_resource     = 0x07,
-	PROP_vector3      = 0x08,
-	PROP_bbox         = 0x09,
-	PROP_angle        = 0x0a,
-	PROP_radian3      = 0x0b,
-	PROP_enum_s32     = 0x0c,
+	PROP_s32 = 0x01,
+	PROP_f32 = 0x02,
+	PROP_xbool = 0x03,
+	PROP_string = 0x04,
+	PROP_resource = 0x07,
+	PROP_vector3 = 0x08,
+	PROP_bbox = 0x09,
+	PROP_angle = 0x0a,
+	PROP_radian3 = 0x0b,
+	PROP_enum_s32 = 0x0c,
 	PROP_enum_xstring = 0x0d,
-	PROP_guid         = 0x0f,
-	PROP_xcolor       = 0x11,
+	PROP_guid = 0x0f,
+	PROP_xcolor = 0x11,
 
 	_PROP_forcedword = 0x7fffffff
 };
@@ -151,8 +157,8 @@ struct ed_property_desc
 	PROP_Type m_PropType;
 	u32 m_Flags;
 	char data[120];
-	void *m_pArray;
-	void *p2;
+	void* m_pArray;
+	void* p2;
 };
 
 struct ed_property_value
@@ -178,12 +184,12 @@ struct ed_property
 
 class prop_array // xarray<ed_property_desc>
 {
-	public:
+public:
 
 	int _1;
 	int _2;
 	int m_Count;
-	ed_property_desc *pData;
+	ed_property_desc* pData;
 	int m_Capacity;
 	int m_Status;
 	int _4;
@@ -204,7 +210,7 @@ class prop_array // xarray<ed_property_desc>
 
 struct xstring
 {
-	char *m_pData;
+	char* m_pData;
 	char  m_LocalData[32];
 	s32   m_Length;
 	s32   unk1;
@@ -212,11 +218,23 @@ struct xstring
 
 class xstring_array
 {
-	public:
+public:
 	s32 unk1;
 	s32 unk2;
 	s32 m_Count;
-	struct xstring *m_pData;
+	struct xstring* m_pData;
 };
+
+// --- Value types the SDK headers expect (we suppressed the SDK's copies above
+// so OUR vector3/bbox/xstring win). You don't define these, so provide them
+// here; the SDK uses them by type only, so layout just needs to be sane.
+struct vector2    { f32 X, Y; };
+struct vector4    { f32 X, Y, Z, W; };
+struct matrix4    { f32 m[16]; };
+struct quaternion { f32 X, Y, Z, W; };
+struct radian3    { f32 X, Y, Z; };
+struct xwstring      { unsigned char _bytes[0x2c]; };
+struct property      { unsigned char _bytes[0x258]; }; // SDK 'property' (your ed_property is separate)
+struct property_desc { unsigned char _bytes[0x108]; };
 
 #endif
