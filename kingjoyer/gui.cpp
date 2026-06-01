@@ -1149,6 +1149,7 @@ static bool showBBoxEditor(bbox& value)
 	return changed;
 }
 
+static ImGuiListClipper clipper; // Modera: had to make it global, MSVC doesn't let me use this inside function bc it has a destructor and function uses __try/__expect
 static void showPropsWindow(void)
 {
 	if (!ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen))
@@ -1179,187 +1180,194 @@ static void showPropsWindow(void)
 		ImGui::Columns(2, NULL, true);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
-		for (int i = 0; i < g_objectProps.m_Count; i++)
+		clipper.Begin(g_objectProps.m_Count, ImGui::GetTextLineHeightWithSpacing());
+
+		while(clipper.Step())
 		{
-			// Validate index and pointer before accessing
-			if (!g_objectProps.pData || !g_objectProps.pData[i].m_Name)
-				continue;
-
-			// Check if name pointer is readable (quick validation)
-			if (IsBadStringPtrA(g_objectProps.pData[i].m_Name, 256))
-				continue;
-
-			// draw a line between rows
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
-			ImGui::Separator();
-			ImGui::PopStyleVar(1);
-
-			// draw name
-			ImGui::TextUnformatted(g_objectProps.pData[i].m_Name);
-
-			// draw value
-			ImGui::NextColumn();
-			ImGui::PushItemWidth(-1);
-
-			ImGui::PushID(i); // Use index instead of potentially unstable string pointer
-
-			ed_property prop = { 0 };
-			g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
-
-			switch (g_objectProps.pData[i].m_PropType)
+			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 			{
-			case PROP_s32: {
-				if (ImGui::InputInt("##s32", &prop.m_Value.m_s32Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				// Validate index and pointer before accessing
+				if (!g_objectProps.pData || !g_objectProps.pData[i].m_Name)
+					continue;
 
-			case PROP_f32: {
-				if (ImGui::InputFloat("##f32", &prop.m_Value.m_f32Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				// Check if name pointer is readable (quick validation)
+				if (IsBadStringPtrA(g_objectProps.pData[i].m_Name, 256))
+					continue;
 
-			case PROP_xbool: {
-				bool bVal = !!prop.m_Value.m_xboolValue;
-				if (ImGui::Checkbox("##xbool", &bVal)) {
-					prop.m_Value.m_xboolValue = xbool(bVal);
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				}
-				break;
-			}
+				// draw a line between rows
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
+				ImGui::Separator();
+				ImGui::PopStyleVar(1);
 
-			case PROP_string:
-			case PROP_resource: {
-				prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = 0;
-				if (ImGui::InputText("##str", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				// draw name
+				ImGui::TextUnformatted(g_objectProps.pData[i].m_Name);
 
-			case PROP_vector3: {
-				if (ImGui::InputFloat3("##vec3", (float*)&prop.m_Value.m_vec3Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				// draw value
+				ImGui::NextColumn();
+				ImGui::PushItemWidth(-1);
 
-			case PROP_bbox: {
-				if (showBBoxEditor(prop.m_Value.m_BBox))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				ImGui::PushID(i); // Use index instead of potentially unstable string pointer
 
-			case PROP_angle: {
-				if (ImGui::InputFloat("##angle", &prop.m_Value.m_f32Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				ed_property prop = { 0 };
+				g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
 
-			case PROP_radian3: {
-				if (ImGui::InputFloat3("##rad3", (float*)&prop.m_Value.m_vec3Value))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
-
-			case PROP_enum_s32: {
-				xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
-				if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
-					break;
-
-				s32 sIdx = prop.m_Value.m_s32Value;
-				if (sIdx < 0 || sIdx >= (s32)pArr->m_Count)
-					break;
-
-				const char* preview = (sIdx >= 0 && sIdx < (s32)pArr->m_Count && pArr->m_pData)
-					? pArr->m_pData[sIdx].m_pData : "INVALID";
-
-				if (!IsBadStringPtrA(preview, 256) && ImGui::BeginCombo("##enums32", preview))
+				switch (g_objectProps.pData[i].m_PropType)
 				{
-					for (u32 j = 0; j < (u32)pArr->m_Count; j++)
-					{
-						if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
-							break;
+				case PROP_s32: {
+					if (ImGui::InputInt("##s32", &prop.m_Value.m_s32Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
 
-						const char* elem = pArr->m_pData[j].m_pData;
-						if (!elem || IsBadStringPtrA(elem, 256))
-							continue;
+				case PROP_f32: {
+					if (ImGui::InputFloat("##f32", &prop.m_Value.m_f32Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
 
-						if (ImGui::Selectable(elem, (s32)j == sIdx))
-						{
-							prop.m_Value.m_s32Value = (s32)j;
-							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-						}
+				case PROP_xbool: {
+					bool bVal = !!prop.m_Value.m_xboolValue;
+					if (ImGui::Checkbox("##xbool", &bVal)) {
+						prop.m_Value.m_xboolValue = xbool(bVal);
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 					}
-					ImGui::EndCombo();
+					break;
 				}
-				break;
-			}
 
-			case PROP_enum_xstring: {
-				xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
-				if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
+				case PROP_string:
+				case PROP_resource: {
+					prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = 0;
+					if (ImGui::InputText("##str", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 					break;
+				}
 
-				const char* preview = prop.m_Value.m_ResourceName;
-				if (IsBadStringPtrA(preview, 256))
+				case PROP_vector3: {
+					if (ImGui::InputFloat3("##vec3", (float*)&prop.m_Value.m_vec3Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
 					break;
+				}
 
-				if (ImGui::BeginCombo("##enumstr", preview))
-				{
-					for (u32 j = 0; j < (u32)pArr->m_Count; j++)
+				case PROP_bbox: {
+					if (showBBoxEditor(prop.m_Value.m_BBox))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
+
+				case PROP_angle: {
+					if (ImGui::InputFloat("##angle", &prop.m_Value.m_f32Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
+
+				case PROP_radian3: {
+					if (ImGui::InputFloat3("##rad3", (float*)&prop.m_Value.m_vec3Value))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
+
+				case PROP_enum_s32: {
+					xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
+					if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
+						break;
+
+					s32 sIdx = prop.m_Value.m_s32Value;
+					if (sIdx < 0 || sIdx >= (s32)pArr->m_Count)
+						break;
+
+					const char* preview = (sIdx >= 0 && sIdx < (s32)pArr->m_Count && pArr->m_pData)
+						? pArr->m_pData[sIdx].m_pData : "INVALID";
+
+					if (!IsBadStringPtrA(preview, 256) && ImGui::BeginCombo("##enums32", preview))
 					{
-						if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
-							break;
-
-						const char* elem = pArr->m_pData[j].m_pData;
-						if (!elem || IsBadStringPtrA(elem, 256))
-							continue;
-
-						if (ImGui::Selectable(elem, strcmp(preview, elem) == 0))
+						for (u32 j = 0; j < (u32)pArr->m_Count; j++)
 						{
-							strncpy(prop.m_Value.m_ResourceName, elem, sizeof(prop.m_Value.m_ResourceName));
-							prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = '\0';
-							g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+							if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
+								break;
+
+							const char* elem = pArr->m_pData[j].m_pData;
+							if (!elem || IsBadStringPtrA(elem, 256))
+								continue;
+
+							if (ImGui::Selectable(elem, (s32)j == sIdx))
+							{
+								prop.m_Value.m_s32Value = (s32)j;
+								g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+							}
 						}
+						ImGui::EndCombo();
 					}
-					ImGui::EndCombo();
+					break;
 				}
-				break;
-			}
 
-			case PROP_guid: {
-				if (showGuidInputText("##guid", prop.m_Value.m_guidValue))
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-				break;
-			}
+				case PROP_enum_xstring: {
+					xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
+					if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
+						break;
 
-			case PROP_xcolor: {
-				float rgba[4];
-				rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
-				rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
-				rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
-				rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
+					const char* preview = prop.m_Value.m_ResourceName;
+					if (IsBadStringPtrA(preview, 256))
+						break;
 
-				if (ImGui::ColorEdit4("##color", rgba))
-				{
-					prop.m_Value.m_xcolorValue.R = (u8)(rgba[0] * 255);
-					prop.m_Value.m_xcolorValue.G = (u8)(rgba[1] * 255);
-					prop.m_Value.m_xcolorValue.B = (u8)(rgba[2] * 255);
-					prop.m_Value.m_xcolorValue.A = (u8)(rgba[3] * 255);
-					g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					if (ImGui::BeginCombo("##enumstr", preview))
+					{
+						for (u32 j = 0; j < (u32)pArr->m_Count; j++)
+						{
+							if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
+								break;
+
+							const char* elem = pArr->m_pData[j].m_pData;
+							if (!elem || IsBadStringPtrA(elem, 256))
+								continue;
+
+							if (ImGui::Selectable(elem, strcmp(preview, elem) == 0))
+							{
+								strncpy(prop.m_Value.m_ResourceName, elem, sizeof(prop.m_Value.m_ResourceName));
+								prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = '\0';
+								g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
 				}
-				break;
-			}
 
-			default:
-				ImGui::TextDisabled("Unknown type: %d", g_objectProps.pData[i].m_PropType);
-				break;
-			}
+				case PROP_guid: {
+					if (showGuidInputText("##guid", prop.m_Value.m_guidValue))
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					break;
+				}
 
-			ImGui::PopID();
-			ImGui::PopItemWidth();
-			ImGui::NextColumn();
+				case PROP_xcolor: {
+					float rgba[4];
+					rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
+					rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
+					rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
+					rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
+
+					if (ImGui::ColorEdit4("##color", rgba))
+					{
+						prop.m_Value.m_xcolorValue.R = (u8)(rgba[0] * 255);
+						prop.m_Value.m_xcolorValue.G = (u8)(rgba[1] * 255);
+						prop.m_Value.m_xcolorValue.B = (u8)(rgba[2] * 255);
+						prop.m_Value.m_xcolorValue.A = (u8)(rgba[3] * 255);
+						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
+					}
+					break;
+				}
+
+				default:
+					ImGui::TextDisabled("Unknown type: %d", g_objectProps.pData[i].m_PropType);
+					break;
+				}
+
+				ImGui::PopID();
+				ImGui::PopItemWidth();
+				ImGui::NextColumn();
+			}
 		}
+
+		clipper.End();
 
 		ImGui::PopStyleVar();
 		ImGui::Columns(1);
