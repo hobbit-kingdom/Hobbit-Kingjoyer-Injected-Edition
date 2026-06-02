@@ -1,6 +1,15 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+
+// Main cheat-menu state and the gui::Render() menu itself.
+//
+// The window / D3D9 / ImGui plumbing lives in gui_platform.cpp, the layer
+// reload code in gui_layers.cpp, the "SDK testing" object panels in
+// gui_sdk_panels.cpp and the skinchanger in gui_skins.cpp (see gui_internal.h).
+// gui::Render() is split here into one static Render* function per collapsing
+// header so the menu is easy to navigate.
 
 #include "gui.h"
+#include "gui_internal.h"
 #include "byte_functions.h"
 #include "Randommod.h"
 #include "PickupAll.h"
@@ -13,6 +22,7 @@
 #include "../imgui/imgui_impl_win32.h"
 
 #include "../meridian/meridian.hpp"
+#include "memsearch.h"
 
 #include "../sdk/meridian_types.h"
 #include "../sdk/engine_core_sdk.h"
@@ -25,15 +35,11 @@
 #include "../sdk/custom_page.h"
 #include "../sdk/bilbo_sdk.h"
 
-#include "../minhook/MinHook.h"
-
-
 #include <iostream>
 #include "string"
 #include <chrono>
 #include <random>
 #include <thread>
-#include <filesystem>
 #include <vector>
 #include <set>
 #include <sstream>
@@ -44,305 +50,8 @@
 using namespace std::chrono;
 using namespace std;
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
-	HWND window,
-	UINT message,
-	WPARAM wideParameter,
-	LPARAM longParameter
-);
 
-long __stdcall WindowProcess(
-	HWND window,
-	UINT message,
-	WPARAM wideParameter,
-	LPARAM longParameter)
-{
-	if (ImGui_ImplWin32_WndProcHandler(window, message, wideParameter, longParameter))
-		return true;
-
-	switch (message)
-	{
-	case WM_SIZE: {
-		if (gui::device && wideParameter != SIZE_MINIMIZED)
-		{
-			gui::presentParameters.BackBufferWidth = LOWORD(longParameter);
-			gui::presentParameters.BackBufferHeight = HIWORD(longParameter);
-			gui::ResetDevice();
-		}
-	}return 0;
-
-	case WM_SYSCOMMAND: {
-		if ((wideParameter & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
-			return 0;
-	}break;
-
-	case WM_DESTROY: {
-		PostQuitMessage(0);
-	}return 0;
-
-	case WM_LBUTTONDOWN: {
-		gui::position = MAKEPOINTS(longParameter); // set click points
-	}return 0;
-
-	case WM_MOUSEMOVE: {
-		if (wideParameter == MK_LBUTTON)
-		{
-			const auto points = MAKEPOINTS(longParameter);
-			auto rect = ::RECT{ };
-
-			GetWindowRect(gui::window, &rect);
-
-			rect.left += points.x - gui::position.x;
-			rect.top += points.y - gui::position.y;
-
-			if (gui::position.x >= 0 &&
-				gui::position.x <= gui::WIDTH &&
-				gui::position.y >= 0 && gui::position.y <= 19)
-				SetWindowPos(
-					gui::window,
-					HWND_TOPMOST,
-					rect.left,
-					rect.top,
-					0, 0,
-					SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOZORDER
-				);
-		}
-
-	}return 0;
-
-	}
-
-	return DefWindowProc(window, message, wideParameter, longParameter);
-}
-
-void gui::CreateHWindow(LPCWSTR windowName) noexcept
-{
-	windowClass.cbSize = sizeof(WNDCLASSEX);
-	windowClass.style = CS_CLASSDC;
-	windowClass.lpfnWndProc = WindowProcess;
-	windowClass.cbClsExtra = 0;
-	windowClass.cbWndExtra = 0;
-	windowClass.hInstance = GetModuleHandleA(0);
-	windowClass.hIcon = 0;
-	windowClass.hCursor = 0;
-	windowClass.hbrBackground = 0;
-	windowClass.lpszMenuName = 0;
-	windowClass.lpszClassName = L"class001";
-	windowClass.hIconSm = 0;
-
-	RegisterClassEx(&windowClass);
-
-	window = CreateWindowEx(
-		0,
-		L"class001",
-		windowName,
-		WS_POPUP,
-		100,
-		100,
-		WIDTH,
-		HEIGHT,
-		0,
-		0,
-		windowClass.hInstance,
-		0
-	);
-
-	ShowWindow(window, SW_SHOWDEFAULT);
-	UpdateWindow(window);
-}
-
-void gui::DestroyHWindow() noexcept
-{
-	DestroyWindow(window);
-	UnregisterClass(windowClass.lpszClassName, windowClass.hInstance);
-}
-
-bool gui::CreateDevice() noexcept
-{
-	d3d = Direct3DCreate9(D3D_SDK_VERSION);
-
-	if (!d3d)
-		return false;
-
-	ZeroMemory(&presentParameters, sizeof(presentParameters));
-
-	presentParameters.Windowed = TRUE;
-	presentParameters.SwapEffect = D3DSWAPEFFECT_DISCARD;
-	presentParameters.BackBufferFormat = D3DFMT_UNKNOWN;
-	presentParameters.EnableAutoDepthStencil = TRUE;
-	presentParameters.AutoDepthStencilFormat = D3DFMT_D16;
-	presentParameters.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
-
-	if (d3d->CreateDevice(
-		D3DADAPTER_DEFAULT,
-		D3DDEVTYPE_HAL,
-		window,
-		D3DCREATE_HARDWARE_VERTEXPROCESSING,
-		&presentParameters,
-		&device) < 0)
-		return false;
-
-	return true;
-}
-
-void gui::ResetDevice() noexcept
-{
-	ImGui_ImplDX9_InvalidateDeviceObjects();
-
-	const auto result = device->Reset(&presentParameters);
-
-	if (result == D3DERR_INVALIDCALL)
-		IM_ASSERT(0);
-
-	ImGui_ImplDX9_CreateDeviceObjects();
-}
-
-void gui::DestroyDevice() noexcept
-{
-	if (device)
-	{
-		device->Release();
-		device = nullptr;
-	}
-
-	if (d3d)
-	{
-		d3d->Release();
-		d3d = nullptr;
-	}
-}
-
-void gui::CreateImGui() noexcept
-{
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	ImGui::GetIO().Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\Arial.ttf", 16.5f, NULL, ImGui::GetIO().Fonts->GetGlyphRangesCyrillic());
-	io.IniFilename = NULL;
-
-	ImGui::StyleColorsDark();
-
-	ImGui_ImplWin32_Init(window);
-	ImGui_ImplDX9_Init(device);
-}
-
-void gui::DestroyImGui() noexcept
-{
-	ImGui_ImplDX9_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-}
-
-void gui::BeginRender() noexcept
-{
-	MSG message;
-	while (PeekMessage(&message, 0, 0, 0, PM_REMOVE))
-	{
-		TranslateMessage(&message);
-		DispatchMessage(&message);
-
-		if (message.message == WM_QUIT)
-		{
-			isRunning = !isRunning;
-			return;
-		}
-	}
-
-	// Start the Dear ImGui frame
-	ImGui_ImplDX9_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-}
-
-void gui::EndRender() noexcept
-{
-	ImGui::EndFrame();
-
-	device->SetRenderState(D3DRS_ZENABLE, FALSE);
-	device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-
-	device->Clear(0, 0, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_RGBA(0, 0, 0, 255), 1.0f, 0);
-
-	if (device->BeginScene() >= 0)
-	{
-		ImGui::Render();
-		ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-		device->EndScene();
-	}
-
-	const auto result = device->Present(0, 0, 0, 0);
-
-	// Handle loss of D3D9 device
-	if (result == D3DERR_DEVICELOST && device->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
-		ResetDevice();
-}
-
-namespace fs = std::filesystem;
-bool copyAndRenameFile(const std::string& sourceFile) {
-	try {
-		fs::path sourcePath = "./SKINS/" + sourceFile;
-		fs::path destDir = "./Common/Bilbo/";
-
-		if (!fs::exists(sourcePath)) {
-			std::cerr << "Source file does not exist: " << sourcePath << std::endl;
-			return false;
-		}
-
-		std::string fileExtension = sourcePath.extension().string();
-		fs::path destFilePath = destDir / ("BILBO[D]" + fileExtension);
-
-		fs::create_directories(destDir);
-
-		if (fs::exists(destFilePath)) {
-			fs::remove(destFilePath);
-			std::cout << "Existing file deleted: " << destFilePath << std::endl;
-		}
-
-		fs::copy_file(sourcePath, destFilePath, fs::copy_options::overwrite_existing);
-		std::cout << "File copied and renamed to: " << destFilePath << std::endl;
-		return true;
-	}
-	catch (const fs::filesystem_error& e) {
-		std::cerr << "Filesystem error: " << e.what() << std::endl;
-		return false;
-	}
-}
-
-void displaySkinButtons(bool lang)
-{
-	fs::path skinsDir = "./SKINS";
-
-	if (!fs::exists(skinsDir)) {
-		ImGui::Text(lang ? "SKINS directory does not exist." : (const char*)u8"папка SKINS не найдена");
-		return;
-	}
-
-	if (fs::is_empty(skinsDir)) {
-		ImGui::Text(lang ? "SKINS directory is empty." : (const char*)u8"папка SKINS пуста.");
-		return;
-	}
-
-	for (const auto& entry : fs::directory_iterator(skinsDir))
-	{
-		if (entry.is_regular_file())
-		{
-			fs::path filePath = entry.path();
-
-			if (filePath.extension() == ".xbmp" || filePath.extension() == ".XBMP")
-			{
-				std::string fileName = filePath.stem().string();
-
-				ImGui::Text("%s", fileName.c_str());
-				ImGui::SameLine();
-
-				if (ImGui::Button((lang ? "Apply##" : (const char*)u8"Принять##" + fileName).c_str()))
-					copyAndRenameFile(filePath.filename().string());
-
-			}
-		}
-	}
-}
+// ===== Cheat menu state =====
 
 bool developerMode = false;
 bool fps60 = false;
@@ -477,1142 +186,10 @@ int ringGreen = 0x18;
 ImVec4 color = ImVec4(ringRed / 255.0f, ringGreen / 255.0f, ringBlue / 255.0f, 1.0f);
 
 
-// ===== LAYER RELOAD FUNCTIONALITY =====
-typedef void(__fastcall* LayerMgrMethod_Int)(void* thisPtr, void* edx_unused, int index);
-typedef void(__fastcall* LayerMgrMethod_String)(void* thisPtr, void* edx_unused, const char* name);
-typedef void(__fastcall* LayerMgrFlush_t)(void* pThis, void* edx_unused);
-typedef int(__fastcall* LoadObjects_t)(void* pThis, void* edx_unused);
+// ===== Menu sections (one per collapsing header) =====
 
-const auto DeactivateObjects = (LayerMgrMethod_Int)0x00559AC0;
-const auto ActivateObjects = (LayerMgrMethod_Int)0x00559A00;
-const auto LayerMgrFlush = (LayerMgrFlush_t)0x0055B420;
-const auto LoadObjects = (LoadObjects_t)0x0055A400;
-
-void* layerMgr = (void*)0x00771EC8;
-
-struct LayerInfo {
-	char name[65];
-	bool selected = false;
-};
-static std::vector<LayerInfo> g_layers;
-
-void gui::RefreshLayers() noexcept {
-	int layerCount = *(int*)0x00771F60;
-	char* layerArray = *(char**)0x00771F64;
-	if (!layerArray || layerCount <= 0) {
-		g_layers.clear();
-		return;
-	}
-
-	g_layers.clear();
-	for (int i = 0; i < layerCount && i < 512; i++) {
-		char* layerPtr = layerArray + (i * 0x44);
-		LayerInfo info;
-		memcpy(info.name, layerPtr, 64);
-		info.name[64] = '\0';
-		info.selected = false;
-		g_layers.push_back(info);
-	}
-}
-
-void gui::ReloadSelectedLayers() noexcept {
-	static bool firstReloadDone = false;
-	static bool isOriginalNonLayer[16384];
-	static unsigned char originalByte67[512];
-
-	__try {
-		int layerCount = *(int*)0x00771F60;
-		char* layerArray = *(char**)0x00771F64;
-		char* objTable = *(char**)0x0076F648;
-		int* objMgr = (int*)0x0076CD88;
-
-		if (!layerArray) return;
-
-		// Use the user-selected layers
-		bool wasLoaded[512];
-		memset(wasLoaded, 0, sizeof(wasLoaded));
-		int loadedCount = 0;
-		for (int i = 0; i < layerCount && i < 512; i++) {
-			char* layerPtr = layerArray + (i * 0x44);
-			if (i < g_layers.size() && g_layers[i].selected) {
-				wasLoaded[i] = true;
-				loadedCount++;
-			}
-			if (!firstReloadDone) {
-				originalByte67[i] = (unsigned char)layerPtr[67];
-			}
-		}
-
-		if (loadedCount == 0) return;
-
-		// Phase 1: Deactivate loaded layers
-		for (int i = 0; i < layerCount; i++) {
-			if (i < 512 && !wasLoaded[i]) continue;
-			DeactivateObjects(layerMgr, nullptr, i);
-		}
-
-		// Phase 2: Destroy non-preserved objects
-		if (objTable) {
-			int maxSlots = objMgr[2614];
-
-			// Snapshot ALL current non-layer objects to preserve them
-			memset(isOriginalNonLayer, 0, sizeof(isOriginalNonLayer));
-			for (int i = 0; i < maxSlots && i < 16384; i++) {
-				char* slot = objTable + (i * 20);
-				void* pObj = *(void**)(slot);
-				short layerID = *(short*)(slot + 10);
-				if (pObj && layerID == -1) {
-					isOriginalNonLayer[i] = true;
-				}
-			}
-			if (!firstReloadDone) {
-				firstReloadDone = true;
-			}
-
-			// Pass 1: Destroy layer objects first (their dtors may reference sub-objects)
-			for (int i = 0; i < maxSlots; i++) {
-				char* slot = objTable + (i * 20);
-				void* pObj = *(void**)(slot);
-				if (!pObj) continue;
-
-				short layerID = *(short*)(slot + 10);
-				if (layerID == -1) continue;
-				if (layerID >= 0 && layerID < 512 && !wasLoaded[layerID]) continue;
-
-				__try {
-					void*** vt = (void***)pObj;
-					typedef void* (__thiscall* Dtor_t)(void*, int);
-					((Dtor_t)(*vt)[0])(pObj, 1);
-				}
-				__except (EXCEPTION_EXECUTE_HANDLER) {}
-
-				*(void**)(slot + 0) = nullptr;
-				*(short*)(slot + 4) = -1;
-				*(short*)(slot + 6) = -1;
-				*(short*)(slot + 8) = -1;
-				*(short*)(slot + 10) = -1;
-				*(short*)(slot + 12) = -2;
-				*(short*)(slot + 14) = -1;
-			}
-
-			// Pass 2: Destroy sub-objects (layerID == -1, not original)
-			for (int i = 0; i < maxSlots; i++) {
-				char* slot = objTable + (i * 20);
-				void* pObj = *(void**)(slot);
-				if (!pObj) continue;
-
-				short layerID = *(short*)(slot + 10);
-				if (layerID != -1) continue;
-				if (i < 16384 && isOriginalNonLayer[i]) continue;
-
-				__try {
-					void*** vt = (void***)pObj;
-					typedef void* (__thiscall* Dtor_t)(void*, int);
-					((Dtor_t)(*vt)[0])(pObj, 0);
-				}
-				__except (EXCEPTION_EXECUTE_HANDLER) {}
-
-				*(void**)(slot + 0) = nullptr;
-				*(short*)(slot + 4) = -1;
-				*(short*)(slot + 6) = -1;
-				*(short*)(slot + 8) = -1;
-				*(short*)(slot + 10) = -1;
-				*(short*)(slot + 12) = -2;
-				*(short*)(slot + 14) = -1;
-			}
-
-			// Reset loaded layer heads and flags
-			for (int li = 0; li < layerCount; li++) {
-				if (li < 512 && !wasLoaded[li]) continue;
-				char* layerPtr = layerArray + (li * 0x44);
-				*(short*)(layerPtr + 64) = -1;
-				layerPtr[66] = 0;
-				layerPtr[67] = originalByte67[li] & ~0x0C;
-			}
-		}
-
-		// Phase 3: Clear hash table, rebuild for surviving objects, rebuild free list
-		short* hashTable = (short*)0x0076CD88;
-		for (int i = 0; i < 4096; i++) {
-			hashTable[i] = -1;
-		}
-		objTable = *(char**)0x0076F648;
-		int rebuilt = 0;
-		int liveCount = 0;
-		int freeCount = 0;
-		short prevFree = -1;
-		short newFreeHead = -1;
-		if (objTable) {
-			int maxSlots = objMgr[2614];
-			for (int i = 0; i < maxSlots; i++) {
-				char* slot = objTable + (i * 20);
-				void* pObj = *(void**)(slot);
-				if (pObj) {
-					__try {
-						unsigned char flags = *((unsigned char*)pObj + 127);
-						if (flags & 0x10) {
-							__int64 guid = *(__int64*)((char*)pObj + 8);
-							unsigned short lo = (unsigned short)(guid & 0xFFFF);
-							unsigned short hi = (unsigned short)((guid >> 32) & 0xFFFF);
-							int bucket = ((-251) * (hi ^ lo)) & 0xFFF;
-							*(short*)(slot + 14) = hashTable[bucket];
-							hashTable[bucket] = (short)i;
-							rebuilt++;
-						}
-						liveCount++;
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {
-						*(void**)(slot + 0) = nullptr;
-						*(short*)(slot + 4) = -1;
-						*(short*)(slot + 6) = -1;
-						*(short*)(slot + 8) = -1;
-						*(short*)(slot + 10) = -1;
-						*(short*)(slot + 12) = -2;
-						*(short*)(slot + 14) = -1;
-					}
-				}
-				if (!*(void**)(slot) && i > 0) {
-					*(short*)(slot + 4) = -1;
-					*(short*)(slot + 6) = prevFree;
-					if (prevFree != -1) {
-						*(short*)(objTable + 20 * prevFree + 4) = (short)i;
-					}
-					else {
-						newFreeHead = (short)i;
-					}
-					prevFree = (short)i;
-					freeCount++;
-				}
-			}
-		}
-		*(short*)&objMgr[2609] = newFreeHead;
-		objMgr[2613] = liveCount;
-
-		// Set resource flags on loaded layers before LoadObjects
-		for (int li = 0; li < layerCount; li++) {
-			if (li < 512 && !wasLoaded[li]) continue;
-			char* layerPtr = layerArray + (li * 0x44);
-			*(unsigned short*)(layerPtr + 66) |= 0x0408;
-		}
-
-		// Temporarily blank non-selected layer names so LoadObjects can't open their .export files
-		char savedNames[512][64];
-		for (int li = 0; li < layerCount && li < 512; li++) {
-			char* layerPtr = layerArray + (li * 0x44);
-			memcpy(savedNames[li], layerPtr, 64);
-			if (!wasLoaded[li]) {
-				memset(layerPtr, 0, 64);
-			}
-		}
-
-		// Only reset global logic manager for full reloads
-		bool fullReload = (loadedCount == layerCount);
-		if (fullReload) {
-			*(int*)(0x00772050 + 0x10) = 0;
-			*(int*)(0x00772050 + 0x2C) = 0;
-			*(int*)(0x00772050 + 0x48) = 0;
-		}
-
-		// Phase 4: LoadObjects (re-parse .export files)
-		__try {
-			LoadObjects(layerMgr, nullptr);
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {}
-
-		// Restore blanked layer names
-		for (int li = 0; li < layerCount && li < 512; li++) {
-			if (!wasLoaded[li]) {
-				char* layerPtr = layerArray + (li * 0x44);
-				memcpy(layerPtr, savedNames[li], 64);
-			}
-		}
-
-		// Phase 5: Post-process type-53 objects
-		objTable = *(char**)0x0076F648;
-		int maxObj = objMgr[2614];
-		if (objTable && maxObj > 0) {
-			for (int i = 0; i < maxObj; i++) {
-				char* slot = objTable + (i * 20);
-				void* pObj = *(void**)(slot);
-				if (pObj && *((unsigned char*)pObj + 124) == 53) {
-					__try {
-						void** vtbl = *(void***)pObj;
-						typedef void(__thiscall* VMethod_t)(void*);
-						((VMethod_t)vtbl[49])(pObj);
-						((VMethod_t)vtbl[50])(pObj);
-					}
-					__except (EXCEPTION_EXECUTE_HANDLER) {}
-				}
-			}
-		}
-
-		// Phase 6: Activate loaded layers
-		for (int i = 0; i < layerCount; i++) {
-			if (i < 512 && !wasLoaded[i]) continue;
-			__try {
-				ActivateObjects(layerMgr, nullptr, i);
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER) {}
-		}
-
-		// Phase 7: Flush
-		__try {
-			*(int*)0x00771F74 = 1;
-			LayerMgrFlush(layerMgr, nullptr);
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER) {}
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER) {}
-}
-static std::vector<std::string> objects;
-
-uint64_t getObjectGUID(void* pEntity)
+static void RenderRendersSection()
 {
-	uint64_t GUID = 0;
-
-	try
-	{
-		GUID = read_value_hobbit<uint64_t>(LPBYTE(pEntity) + 0x8);
-	}
-	catch (...)
-	{
-		GUID = 0;
-	}
-
-	return GUID;
-}
-
-uint32_t getObjectType(void* pEntity)
-{
-	uint32_t Type = 0;
-
-	try
-	{
-		Type = read_value_hobbit<uint8_t>(LPBYTE(pEntity) + 0x7C);
-	}
-	catch (...)
-	{
-		Type = 0;
-	}
-
-	return Type;
-}
-
-char* getObjectName(void* pEntity, char out_name[32])
-{
-	try
-	{
-		char* name_ptr = read_value_hobbit<char*>(LPBYTE(pEntity) + 0xA0);
-		if (name_ptr) {
-			strncpy(out_name, name_ptr, sizeof(out_name));
-			out_name[sizeof(out_name) - 1] = '\0';
-		}
-	}
-	catch (...)
-	{
-		strcpy(out_name, "ERR");
-	}
-
-	return out_name;
-}
-
-void updateObjectList()
-{
-	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
-	const LPVOID objects_count_offs = LPVOID(0x0076F660);
-	const SIZE_T OBJ_RECORD_SIZE = 0x14;
-
-	void* objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
-	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
-
-	objects.clear();
-
-	for (size_t i = 0; i < objects_cnt; i++) {
-		void* pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
-		void* pEntity = *((void**)pRecord);
-
-		if (pEntity) {
-			uint64_t GUID = 0;
-			char nam[32] = "\"\"";
-			char str[256];
-
-			GUID = getObjectGUID(pEntity);
-			getObjectName(pEntity, nam);
-
-			sprintf_s(str, "%p - %08X_%08X - %s - %d",
-				pEntity,
-				uint32_t((GUID >> 32) & 0xFFFFFFFF),
-				uint32_t(GUID & 0xFFFFFFFF),
-				nam,
-				getObjectType(pEntity)
-			);
-
-			objects.push_back(str);
-		}
-	}
-}
-
-void* getObjectByGUID(uint64_t guid)
-{
-	const LPVOID objects_array_ptr_offs = LPVOID(0x0076F648);
-	const LPVOID objects_count_offs = LPVOID(0x0076F660);
-	const SIZE_T OBJ_RECORD_SIZE = 0x14;
-
-	void* objects_ptr = read_value_hobbit<void*>(objects_array_ptr_offs);
-	size_t objects_cnt = read_value_hobbit<size_t>(objects_count_offs);
-
-	for (size_t i = 0; i < objects_cnt; i++) {
-		void* pRecord = LPBYTE(objects_ptr) + i * OBJ_RECORD_SIZE;
-		void* pEntity = *((void**)pRecord);
-
-		if (pEntity && getObjectGUID(pEntity) == guid) {
-			return pEntity;
-		}
-	}
-
-	return NULL;
-}
-
-static void showObjectList(void)
-{
-	if (ImGui::CollapsingHeader(lang ? "Object List" : (const char*)u8"Список объектов"))
-	{
-		if (ImGui::Button(lang ? "Refresh" : (const char*)u8"Обновить"))
-			updateObjectList();
-
-		if (ImGui::BeginCombo(lang ? "ObjectList" : (const char*)u8"СписокОбъектов", ""))
-		{
-			for (size_t i = 0; i < objects.size(); i++)
-				ImGui::Selectable(objects[i].c_str());
-			ImGui::EndCombo();
-		}
-
-		ImGui::Text(lang ? "Objects Total: %u" : (const char*)u8"Количество объектов: %u", objects.size());
-	}
-}
-
-void* pNPC;
-char anim_result[32] = "\"\"";
-
-// exact size is unknown for now
-struct rhandle
-{
-	int something;
-};
-
-class anim_track_controller
-{
-public:
-	virtual ~anim_track_controller(void); // create the VMT
-
-	rhandle m_hAnimGroup; // + 0x04
-};
-typedef void(__thiscall anim_track_controller::* SetAnimPROCPTR)(int anim_id, float blend_time);
-
-class rsc_mgr
-{
-	int dummy;
-};
-// loads resource if it's not loaded yet
-typedef void* (__thiscall rsc_mgr::* LockRHandlePROCPTR)(rhandle* _rhandle);
-// some other operation on rhandle, always follows LockRHandle
-typedef int(__thiscall rsc_mgr::* unkhandlePROCPTR)(rhandle* _rhandle);
-
-struct anim_data
-{
-	char name[32];
-	char data[48];
-};
-
-struct anim_group
-{
-	char name[60];
-	void* ptr1;
-	int version;
-	int num_frames;
-	int num_unk_jf;
-
-	uint32_t bones_count;
-	void* bones_ptr;
-
-	uint32_t anims_count;
-	anim_data* anims_ptr;
-
-	// ...
-};
-
-
-static hobbit_ui::OpenDialog_t o_OpenDialog = nullptr;
-
-void* __fastcall hk_OpenDialog(void* uimgr, void* /*edx*/, void* ctx, const char* name,
-	int rL, int rT, int rR, int rB, int a, int b, int c)
-{
-	if (name && std::strcmp(name, "pause summary") == 0) {
-		hobbit_ui::BackdropMode() = hobbit_ui::BD_SUMMARY;   // summary bg
-		// -- or --
-		// hobbit_ui::BackdropMode() = hobbit_ui::BD_PANEL;
-		// hobbit_ui::BackdropScale() = 1.6f;                 // bigger panel
-		hobbit_ui::RegisterTemplate();
-		void* dlg = o_OpenDialog(uimgr, ctx, "kitchen_sink", rL, rT, rR, rB, a, b, c);
-		if (dlg) hobbit_ui::Relabel(dlg);
-		return dlg;
-	}
-	return o_OpenDialog(uimgr, ctx, name, rL, rT, rR, rB, a, b, c);
-}
-
-
-
-static void setNPCAnim(void* pNPC, int anim)
-{
-	uint32_t animAdd1 = (uint32_t)pNPC;
-	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
-	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
-	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
-	if (animAdd4 == 0)
-	{
-		strcpy(anim_result, "ERROR");
-	}
-	else {
-		anim_track_controller* pController = (anim_track_controller*)animAdd4;
-
-		uint32_t _SetAnimPTR = 0x5434B0;
-		SetAnimPROCPTR SetAnimPTR;
-		memcpy(&SetAnimPTR, &_SetAnimPTR, 4);
-
-		(pController->*SetAnimPTR)(anim, 1.f);
-
-		/*
-		uint32_t animationAddress = 0x8 + animAdd4;
-		int *pI = (int*)animationAddress;
-
-		*pI = anim;
-		*/
-
-		strcpy(anim_result, "ANIM OK");
-	}
-}
-
-static void getNPCAnimList(void* pNPC, std::vector<std::string>& out_vec)
-{
-	uint32_t animAdd1 = (uint32_t)pNPC;
-	uint32_t animAdd2 = read_value_hobbit<uint32_t>(LPVOID(0x304 + animAdd1));
-	uint32_t animAdd3 = read_value_hobbit<uint32_t>(LPVOID(0x50 + animAdd2));
-	uint32_t animAdd4 = read_value_hobbit<uint32_t>(LPVOID(0x10C + animAdd3));
-	if (animAdd4 == 0)
-	{
-		strcpy(anim_result, "ERROR");
-	}
-	else {
-		anim_track_controller* pController = (anim_track_controller*)animAdd4;
-
-		uint32_t _LockRHandlePTR = 0x549470;
-		LockRHandlePROCPTR LockRHandlePTR;
-		memcpy(&LockRHandlePTR, &_LockRHandlePTR, 4);
-
-		uint32_t _unkhandlePTR = 0x549580;
-		unkhandlePROCPTR unkhandlePTR;
-		memcpy(&unkhandlePTR, &_unkhandlePTR, 4);
-
-		rsc_mgr* g_RscMgr = (rsc_mgr*)0x76C0D0;
-
-		anim_group* pGroup = (anim_group*)(g_RscMgr->*LockRHandlePTR)(&pController->m_hAnimGroup);
-		(g_RscMgr->*unkhandlePTR)(&pController->m_hAnimGroup);
-
-		for (uint32_t i = 0; i < pGroup->anims_count; i++) {
-			char str[128];
-			sprintf(str, "%d : %s", i, pGroup->anims_ptr[i].name);
-			out_vec.push_back(str);
-		}
-
-		strcpy(anim_result, "ANIM OK");
-	}
-}
-
-static char _NPC_anim[128] = "1";
-
-std::vector<std::string> _NPC_anim_list;
-
-static void showNPCTest(void)
-{
-	static char _NPC_Status[128] = "NOSTATUS";
-	static char _NPC_Guid[128] = "0D8AD910_E8851002";
-
-	if (ImGui::CollapsingHeader(lang ? "NPC Anim" : (const char*)u8"НПС Анимация"))
-	{
-		ImGui::Text(_NPC_Status);
-
-		ImGui::InputText(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", _NPC_Guid, sizeof(_NPC_Guid));
-
-		if (ImGui::Button(lang ? "Query NPC" : (const char*)u8"Найти НПС")) {
-			uint32_t guid_high;
-			uint32_t guid_low;
-
-			if (sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
-				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
-				if (pNPC) {
-					strcpy_s(_NPC_Status, "NPC OK");
-					// Clear and refresh the list
-					_NPC_anim_list.clear();
-					getNPCAnimList(pNPC, _NPC_anim_list);
-				}
-				else {
-					strcpy_s(_NPC_Status, "NPC Not found");
-					_NPC_anim_list.clear();
-				}
-			}
-			else {
-				strcpy_s(_NPC_Status, "Invalid GUID");
-				_NPC_anim_list.clear();
-			}
-		}
-
-		ImGui::Text("");
-
-		// Optional: Keep manual input for custom anim IDs
-		if (ImGui::TreeNode(lang ? "Manual Input" : (const char*)u8"Ручной ввод")) {
-			ImGui::InputText(lang ? "Anim ID:" : (const char*)u8"ID Анимации", _NPC_anim, sizeof(_NPC_anim), ImGuiInputTextFlags_CharsDecimal);
-			int anim_id = atoi(_NPC_anim);
-
-			if (ImGui::Button(lang ? "Do Set Anim" : (const char*)u8"Установить Анимацию") && pNPC) {
-				setNPCAnim(pNPC, anim_id);
-			}
-			ImGui::TreePop();
-		}
-
-		ImGui::Text("");
-
-
-		// Alternative simpler version (uncomment if you prefer this style):
-
-		if (ImGui::BeginListBox(lang ? "Anims:" : (const char*)u8"Анимации:", ImVec2(-FLT_MIN, 300))) {
-			for (int i = 0; i < _NPC_anim_list.size(); i++) {
-				const std::string& str = _NPC_anim_list[i];
-				int anim_id = 0;
-				sscanf(str.c_str(), "%d", &anim_id);
-
-				ImGui::PushID(i);
-
-				// Calculate button width
-				float playBtnWidth = 50.0f;
-				float selectableWidth = ImGui::GetContentRegionAvail().x - playBtnWidth - ImGui::GetStyle().ItemSpacing.x;
-
-				// Selectable that doesn't fill entire width
-				if (ImGui::Selectable(str.c_str(), false, ImGuiSelectableFlags_None, ImVec2(selectableWidth, 0))) {
-					if (pNPC) setNPCAnim(pNPC, anim_id);
-				}
-
-				// Play button on same line
-				ImGui::SameLine();
-				if (ImGui::SmallButton("Play") && pNPC) {
-					setNPCAnim(pNPC, anim_id);
-				}
-
-				ImGui::PopID();
-			}
-			ImGui::EndListBox();
-		}
-
-	}
-}
-
-static object* g_propsObject;
-static prop_array g_objectProps;
-static bool g_propsWindowOpen;
-
-static void formatGuidString(char* pBuffer, size_t bufferSize, const guid& value)
-{
-	uint32_t guid_high = uint32_t(value.Guid >> 32);
-	uint32_t guid_low = uint32_t(value.Guid);
-	sprintf_s(pBuffer, bufferSize, "%X_%X", guid_high, guid_low);
-}
-
-static bool tryParseGuidString(const char* pBuffer, guid& outGuid)
-{
-	uint32_t guid_high;
-	uint32_t guid_low;
-	unsigned long long fullGuid;
-
-	if (sscanf(pBuffer, "%X_%X", &guid_high, &guid_low) == 2) {
-		outGuid.Guid = (uint64_t(guid_high) << 32) | guid_low;
-		return true;
-	}
-
-	if (sscanf(pBuffer, "%llX", &fullGuid) == 1) {
-		outGuid.Guid = fullGuid;
-		return true;
-	}
-
-	return false;
-}
-
-static bool showGuidInputText(const char* pLabel, guid& value)
-{
-	char guidBuffer[32];
-	formatGuidString(guidBuffer, sizeof(guidBuffer), value);
-
-	ImGuiInputTextFlags flags = ImGuiInputTextFlags_CharsUppercase | ImGuiInputTextFlags_EnterReturnsTrue;
-	bool submitted = ImGui::InputText(pLabel, guidBuffer, sizeof(guidBuffer), flags);
-	bool finishedEditing = submitted || ImGui::IsItemDeactivatedAfterEdit();
-
-	if (!finishedEditing)
-		return false;
-
-	guid parsedGuid;
-	if (!tryParseGuidString(guidBuffer, parsedGuid))
-		return false;
-
-	value = parsedGuid;
-	return true;
-}
-
-static bool showBBoxEditor(bbox& value)
-{
-	bool changed = false;
-	changed |= ImGui::InputFloat3("Min", (float*)&value.Min);
-	changed |= ImGui::InputFloat3("Max", (float*)&value.Max);
-	return changed;
-}
-
-static ImGuiListClipper clipper; // Modera: had to make it global, MSVC doesn't let me use this inside function bc it has a destructor and function uses __try/__expect
-static void showPropsWindow(void)
-{
-	if (!ImGui::Begin(lang ? "Objects Properties" : (const char*)u8"Свойства Объектов", &g_propsWindowOpen))
-	{
-		ImGui::End();
-		return;
-	}
-
-	// Basic null checks before proceeding
-	if (!g_propsObject || !g_objectProps.pData || g_objectProps.m_Count <= 0)
-	{
-		ImGui::TextDisabled("No object selected or invalid data");
-		ImGui::End();
-		return;
-	}
-
-	// Sanity check count to prevent insane iterations
-	if (g_objectProps.m_Count > 10000)
-	{
-		ImGui::TextDisabled("Invalid property count: %d", g_objectProps.m_Count);
-		g_propsWindowOpen = false;
-		ImGui::End();
-		return;
-	}
-
-	__try
-	{
-		ImGui::Columns(2, NULL, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-
-		clipper.Begin(g_objectProps.m_Count, ImGui::GetTextLineHeightWithSpacing());
-
-		while (clipper.Step())
-		{
-			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-			{
-				// Validate index and pointer before accessing
-				if (!g_objectProps.pData || !g_objectProps.pData[i].m_Name)
-					continue;
-
-				// Check if name pointer is readable (quick validation)
-				if (IsBadStringPtrA(g_objectProps.pData[i].m_Name, 256))
-					continue;
-
-				// draw a line between rows
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 3));
-				ImGui::Separator();
-				ImGui::PopStyleVar(1);
-
-				// draw name
-				ImGui::TextUnformatted(g_objectProps.pData[i].m_Name);
-
-				// draw value
-				ImGui::NextColumn();
-				ImGui::PushItemWidth(-1);
-
-				ImGui::PushID(i); // Use index instead of potentially unstable string pointer
-
-				ed_property prop = { 0 };
-				g_propsObject->GetProperty(prop, g_objectProps.pData[i].m_Name);
-
-				switch (g_objectProps.pData[i].m_PropType)
-				{
-				case PROP_s32: {
-					if (ImGui::InputInt("##s32", &prop.m_Value.m_s32Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_f32: {
-					if (ImGui::InputFloat("##f32", &prop.m_Value.m_f32Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_xbool: {
-					bool bVal = !!prop.m_Value.m_xboolValue;
-					if (ImGui::Checkbox("##xbool", &bVal)) {
-						prop.m_Value.m_xboolValue = xbool(bVal);
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					}
-					break;
-				}
-
-				case PROP_string:
-				case PROP_resource: {
-					prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = 0;
-					if (ImGui::InputText("##str", prop.m_Value.m_ResourceName, sizeof(prop.m_Value.m_ResourceName)))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_vector3: {
-					if (ImGui::InputFloat3("##vec3", (float*)&prop.m_Value.m_vec3Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_bbox: {
-					if (showBBoxEditor(prop.m_Value.m_BBox))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_angle: {
-					if (ImGui::InputFloat("##angle", &prop.m_Value.m_f32Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_radian3: {
-					if (ImGui::InputFloat3("##rad3", (float*)&prop.m_Value.m_vec3Value))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_enum_s32: {
-					xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
-					if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
-						break;
-
-					s32 sIdx = prop.m_Value.m_s32Value;
-					if (sIdx < 0 || sIdx >= (s32)pArr->m_Count)
-						break;
-
-					const char* preview = (sIdx >= 0 && sIdx < (s32)pArr->m_Count && pArr->m_pData)
-						? pArr->m_pData[sIdx].m_pData : "INVALID";
-
-					if (!IsBadStringPtrA(preview, 256) && ImGui::BeginCombo("##enums32", preview))
-					{
-						for (u32 j = 0; j < (u32)pArr->m_Count; j++)
-						{
-							if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
-								break;
-
-							const char* elem = pArr->m_pData[j].m_pData;
-							if (!elem || IsBadStringPtrA(elem, 256))
-								continue;
-
-							if (ImGui::Selectable(elem, (s32)j == sIdx))
-							{
-								prop.m_Value.m_s32Value = (s32)j;
-								g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-							}
-						}
-						ImGui::EndCombo();
-					}
-					break;
-				}
-
-				case PROP_enum_xstring: {
-					xstring_array* pArr = (xstring_array*)g_objectProps.pData[i].m_pArray;
-					if (!pArr || IsBadReadPtr(pArr, sizeof(xstring_array)))
-						break;
-
-					const char* preview = prop.m_Value.m_ResourceName;
-					if (IsBadStringPtrA(preview, 256))
-						break;
-
-					if (ImGui::BeginCombo("##enumstr", preview))
-					{
-						for (u32 j = 0; j < (u32)pArr->m_Count; j++)
-						{
-							if (!pArr->m_pData || IsBadReadPtr(&pArr->m_pData[j], sizeof(xstring)))
-								break;
-
-							const char* elem = pArr->m_pData[j].m_pData;
-							if (!elem || IsBadStringPtrA(elem, 256))
-								continue;
-
-							if (ImGui::Selectable(elem, strcmp(preview, elem) == 0))
-							{
-								strncpy(prop.m_Value.m_ResourceName, elem, sizeof(prop.m_Value.m_ResourceName));
-								prop.m_Value.m_ResourceName[sizeof(prop.m_Value.m_ResourceName) - 1] = '\0';
-								g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-							}
-						}
-						ImGui::EndCombo();
-					}
-					break;
-				}
-
-				case PROP_guid: {
-					if (showGuidInputText("##guid", prop.m_Value.m_guidValue))
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					break;
-				}
-
-				case PROP_xcolor: {
-					float rgba[4];
-					rgba[0] = prop.m_Value.m_xcolorValue.R / 255.f;
-					rgba[1] = prop.m_Value.m_xcolorValue.G / 255.f;
-					rgba[2] = prop.m_Value.m_xcolorValue.B / 255.f;
-					rgba[3] = prop.m_Value.m_xcolorValue.A / 255.f;
-
-					if (ImGui::ColorEdit4("##color", rgba))
-					{
-						prop.m_Value.m_xcolorValue.R = (u8)(rgba[0] * 255);
-						prop.m_Value.m_xcolorValue.G = (u8)(rgba[1] * 255);
-						prop.m_Value.m_xcolorValue.B = (u8)(rgba[2] * 255);
-						prop.m_Value.m_xcolorValue.A = (u8)(rgba[3] * 255);
-						g_propsObject->SetProperty(g_objectProps.pData[i].m_Name, prop);
-					}
-					break;
-				}
-
-				default:
-					ImGui::TextDisabled("Unknown type: %d", g_objectProps.pData[i].m_PropType);
-					break;
-				}
-
-				ImGui::PopID();
-				ImGui::PopItemWidth();
-				ImGui::NextColumn();
-			}
-		}
-
-		clipper.End();
-
-		ImGui::PopStyleVar();
-		ImGui::Columns(1);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		// Memory corruption detected, close the window safely
-		g_propsWindowOpen = false;
-		ImGui::End();
-		return;
-	}
-
-	ImGui::End();
-}
-
-static void showPropsTest(void)
-{
-	static char _object_Status[32];
-
-	if (ImGui::CollapsingHeader(lang ? "Props Test" : (const char*)u8"Тест Свойств Объектов"))
-	{
-		static char _object_Guid[32];
-
-
-		ImGui::Text(_object_Status);
-
-		ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", _object_Guid, sizeof(_object_Guid));
-
-		if (ImGui::Button(lang ? "Query Object" : (const char*)u8"Свойтва Объекта")) {
-			guid objectGuid;
-
-			if (tryParseGuidString(_object_Guid, objectGuid)) {
-				object* pObject = (object*)getObjectByGUID(objectGuid.Guid);
-				if (pObject) {
-					strcpy_s(_object_Status, "Object OK");
-					g_objectProps.Clear();
-					pObject->EnumerateProperties(g_objectProps);
-					g_propsObject = pObject;
-				}
-				else {
-					strcpy_s(_object_Status, "Object Not found");
-					g_objectProps.Clear();
-					g_propsObject = NULL;
-				}
-			}
-			else {
-				strcpy_s(_object_Status, "Invalid GUID");
-				g_objectProps.Clear();
-				g_propsObject = NULL;
-			}
-		}
-
-		if (ImGui::Button(lang ? "ShowPropertiesWindow" : (const char*)u8"Показать Окно Свойств")) {
-			g_propsWindowOpen = true;
-		}
-	}
-}
-
-static guid spawned_guid;
-
-void getBilboPos(vector3& outPos)
-{
-	DWORD ukazatel = read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
-	outPos.X = read_value_hobbit<float>((LPDWORD)ukazatel + 5);
-	outPos.Y = read_value_hobbit<float>((LPDWORD)ukazatel + 6);
-	outPos.Z = read_value_hobbit<float>((LPDWORD)ukazatel + 7);//функция установки точки телепортации
-}
-
-static void showSpawnTest_(void)
-{
-	if (ImGui::CollapsingHeader("Spawn Test"))
-	{
-		uint32_t guid_high = spawned_guid.Guid >> 32;
-		uint32_t guid_low = spawned_guid.Guid;
-		char str[32];
-
-		sprintf(str, "%X_%X", guid_high, guid_low);
-
-		ImGui::Text(lang ? "Spawned GUID: %s" : (const char*)u8"Заспавнен GUID: %s", str);
-
-		if (ImGui::Button(lang ? "Do Spawn" : (const char*)u8"Заспавнить"))
-		{
-			spawned_guid = g_ObjMgr.CreateObject("Marker", guid());
-
-			static int nmarker = 0;
-			marker* pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
-			if (pMarker)
-			{
-				sprintf(str, "marker%d", nmarker++);
-
-				vector3 P; getBilboPos(P);
-				pMarker->Move(P, 0);
-
-				pMarker->SetText(str);
-
-				//pMarker->SetObjSaveFlag(1);
-			}
-		}
-
-		static char i_text[32];
-		ImGui::InputText(lang ? "SetText" : (const char*)u8"Установить Текс", i_text, 32);
-		if (ImGui::Button(lang ? "Set Text" : (const char*)u8"Установить Текс"))
-		{
-			marker* pMarker = (marker*)getObjectByGUID(spawned_guid.Guid);
-			if (pMarker)
-			{
-				pMarker->SetText(i_text);
-			}
-		}
-	}
-}
-
-
-const char* ObjectClasses[] = { "RigidInstance", "NPC", "Marker" };
-
-static void showSpawnTest(void)
-{
-	if (ImGui::CollapsingHeader("Spawn Test"))
-	{
-		uint32_t guid_high = spawned_guid.Guid >> 32;
-		uint32_t guid_low = spawned_guid.Guid;
-		char str[32];
-
-		sprintf(str, "%X_%X", guid_high, guid_low);
-
-		ImGui::Text(lang ? "Spawned GUID: %s" : (const char*)u8"Заспавнен GUID: %s", str);
-
-		static int objectIndex = 0;
-		ImGui::Text(lang ? "Select Object Type" : (const char*)u8"Выбирите тип объекта");
-		ImGui::Combo(" ", &objectIndex, ObjectClasses, IM_ARRAYSIZE(ObjectClasses));
-
-		if (ImGui::Button(lang ? "Do Spawn" : (const char*)u8"Заспавнить"))
-		{
-			spawned_guid = g_ObjMgr.CreateObject(ObjectClasses[objectIndex], guid());
-
-			object* pMarker = (object*)getObjectByGUID(spawned_guid.Guid);
-			if (pMarker)
-			{
-				{
-					bin_in BinIn{};
-					if (BinIn.OpenFile("./Templates/Test.export") && BinIn.ReadHeader() && BinIn.ReadFields())
-					{
-						pMarker->OnImport(BinIn);
-					}
-				}
-
-				vector3 P; getBilboPos(P);
-				pMarker->Move(P, 1);
-			}
-		}
-
-
-	}
-}
-
-static bool g_bDemoWindow = false;
-
-typedef void(__thiscall* PauseTextBox_t)(void* self, const wchar_t* title, const wchar_t* body);
-typedef void(__thiscall* PauseSaveKiosk_t)(void* self);
-
-static const PauseTextBox_t   Pause_TextBox = (PauseTextBox_t)0x0052D9B0;
-static const PauseSaveKiosk_t Pause_SaveKiosk = (PauseSaveKiosk_t)0x0052D960; // the one you tested
-void* g_PauseMgr = (void*)0x00763208;
-
-// keep strings alive (the engine copies them, but static is safest)
-
-void ShowMyTextScreen() {
-
-	const wchar_t* kTitle = L"Hello from king174rus";
-	const wchar_t* kBody = L"Hello everyone. If you are seeing this message\nit means I'm stepping away from work\nand handing over my crown to Modera.\nI am sorry, goodbye.";
-
-	Pause_TextBox(g_PauseMgr, kTitle, kBody);   // pops the pause text screen with your text
-}
-
-
-typedef void(__thiscall* InfoBox_t)(void* self, const char* title, const wchar_t* body, int withButton);
-static const InfoBox_t InfoBox = (InfoBox_t)0x00526640;
-void* g_InfoOverlay = (void*)0x007626D0;     // the in-game info-overlay singleton
-
-void ShowMyMessage() {
-	// title is ASCII; body is wide (UTF-16). withButton: 1 = show a dismiss button, 0 = none.
-	InfoBox(g_InfoOverlay, "QUEST UPDATE", L"You found the Arkenstone!\nReturn to Thorin.", 1);
-}
-
-void gui::Render() noexcept
-{
-	//ImGui::SetNextWindowPos({ 0, 0 });
-
-	ImGui::Begin(
-		"The Hobbit KINGJOYER v1.5 by king174rus, Mr_Kliff & Modera",
-		&isRunning,
-		ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoCollapse
-	);
-
-	ImGui::Text("The Hobbit KINGJOYER");
-	ImGui::Text("");
-
-	if (ImGui::Button(!lang ? "Change Language" : (const char*)u8"Поменять язык")) lang = !lang;
-
-	//if (ImGui::Button("Demo Window"))
-	//	g_bDemoWindow = true;
-	//if (g_bDemoWindow)
-	//	ImGui::ShowDemoWindow(&g_bDemoWindow);
-
-	ImGui::Separator();
-	ImGui::Text("");
-
-	if (ImGui::Checkbox(lang ? "Developer mode" : (const char*)u8"Режим Разработчика", &developerMode)) {
-		functions::developerMode();
-	}
-	if (ImGui::Checkbox(lang ? "60 FPS" : (const char*)u8"60 фпс", &fps60)) {
-		functions::fps60();
-	}
-	if (ImGui::Checkbox(lang ? "Hotkeys" : (const char*)u8"Горячие клавиши", &enableKeybinds)) {
-
-	}
-	if (ImGui::Checkbox(lang ? "Overlay settings" : (const char*)u8"Отображать оверлей", &drawSettings)) {
-
-	}
-
 	if (ImGui::CollapsingHeader(lang ? "Renders" : (const char*)u8"Рендеры"))
 	{
 		ImGui::Indent();
@@ -1702,53 +279,16 @@ void gui::Render() noexcept
 
 		ImGui::Unindent();
 	}
+}
 
-	if (ImGui::CollapsingHeader(lang ? "Layers" : (const char*)u8"Слои"))
-	{
-		ImGui::Indent();
-		if (ImGui::Button(lang ? "Refresh Layer List" : (const char*)u8"Обновить список слоев")) {
-			RefreshLayers();
-		}
-
-		if (!g_layers.empty()) {
-			if (ImGui::Button(lang ? "Select All" : (const char*)u8"Выбрать все")) {
-				for (auto& l : g_layers) l.selected = true;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button(lang ? "Deselect All" : (const char*)u8"Снять выделение")) {
-				for (auto& l : g_layers) l.selected = false;
-			}
-
-			ImGui::BeginChild("LayerListScroll", ImVec2(0, 200), true);
-			for (int i = 0; i < (int)g_layers.size(); i++) {
-				ImGui::PushID(i);
-				ImGui::Checkbox(g_layers[i].name, &g_layers[i].selected);
-				ImGui::PopID();
-			}
-			ImGui::EndChild();
-
-			if (ImGui::Button(lang ? "Reload Selected Layers" : (const char*)u8"Перезагрузить выбранные слои")) {
-				ReloadSelectedLayers();
-			}
-		}
-		ImGui::Unindent();
-	}
-
+static void RenderSdkTesting()
+{
 	if (ImGui::CollapsingHeader(lang ? "SDK testing" : (const char*)u8"СДК"))
 	{
 
 		if (ImGui::Button(lang ? "init hook" : (const char*)u8"init hook"))
 		{
-			MH_Initialize();
-			MH_CreateHook((void*)hobbit_ui::addr::OpenDialog, &hk_OpenDialog, (void**)&o_OpenDialog);
-			MH_EnableHook((void*)hobbit_ui::addr::OpenDialog);
-
-			hobbit_ui::OnClick() = [](int id, void* dlg) {
-				if (id == hobbit_ui::ID_BUTTON)
-					printf("A Button! slider=%d check=%d\n",
-						hobbit_ui::GetSliderValue(dlg), hobbit_ui::GetCheck(dlg));
-				// ID_CLOSE auto-closes; ID_CHECK fires on toggle
-				};
+			InitDialogHook();
 		}
 
 		if (hobbit_ui::IsPageOpen())                       // page currently up?
@@ -1773,7 +313,7 @@ void gui::Render() noexcept
 
 		static float fade_time = 0x1;
 
-		ImGui::PushItemWidth(100);
+		ImGui::SetNextItemWidth(100);
 		ImGui::InputFloat("Fade time", &fade_time, 1);
 
 		if (ImGui::Button(lang ? "Turn on rain" : (const char*)u8"wearhth")) {
@@ -1813,7 +353,7 @@ void gui::Render() noexcept
 
 		static int projectile_id = 0x1;
 
-		ImGui::PushItemWidth(100);
+		ImGui::SetNextItemWidth(100);
 		ImGui::InputInt("Projectile id", &projectile_id, 1);
 
 		if (ImGui::Button(lang ? "Projectile spawn" : (const char*)u8"proj spawn")) {
@@ -1824,7 +364,10 @@ void gui::Render() noexcept
 		}
 
 	}
+}
 
+static void RenderCheats()
+{
 	if (ImGui::CollapsingHeader(lang ? "Cheats" : (const char*)u8"Читы"))
 	{
 		ImGui::Indent();
@@ -1855,7 +398,7 @@ void gui::Render() noexcept
 		static int nextLevel = read_value_hobbit<int>(currentLevel) + 1;
 
 		ImGui::PushItemWidth(100);
-		ImGui::InputInt("", &nextLevel, 1);
+		ImGui::InputInt("##nextLevel", &nextLevel, 1);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Set next level" : (const char*)u8"Установить следующий уровень")) {
@@ -1937,7 +480,7 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Bilbos' speed" : (const char*)u8"Скорость Бильбо");
 		static int speed = 300;
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt("", &speed, 50);
+		ImGui::InputInt("##bilboSpeed", &speed, 50);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply speed" : (const char*)u8"Применить скорость")) {
@@ -1951,7 +494,7 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Jump power (lower = better)" : (const char*)u8"Сила прыжка (меньше = лучше)");
 		static int jumpPower = 3000;
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt(" ", &jumpPower, 500);
+		ImGui::InputInt("##jumpPower", &jumpPower, 500);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply power" : (const char*)u8"Применить прыжок")) {
@@ -1962,7 +505,7 @@ void gui::Render() noexcept
 
 		static int speedInJump = 350;
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt("  ", &speedInJump, 100);
+		ImGui::InputInt("##speedInJump", &speedInJump, 100);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply speed in jump" : (const char*)u8"Применить скорсоть в прыжке")) {
@@ -1983,7 +526,10 @@ void gui::Render() noexcept
 
 		ImGui::Unindent();
 	}
+}
 
+static void RenderCamera()
+{
 	if (ImGui::CollapsingHeader(lang ? "Camera" : (const char*)u8"Камера"))
 	{
 		ImGui::Indent();
@@ -2000,7 +546,7 @@ void gui::Render() noexcept
 		static float fovValue = 1.27;
 		ImGui::Text(lang ? "Set FOV manually" : (const char*)u8"Поставить Угол Обзора Вручную");
 		ImGui::PushItemWidth(300);
-		ImGui::InputFloat(". ", &fovValue, 0.1);
+		ImGui::InputFloat("##fov", &fovValue, 0.1);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply manual FOV" : (const char*)u8"Применить ручной Угол Обзора")) {
@@ -2010,7 +556,7 @@ void gui::Render() noexcept
 		static int cameraDistance = 100;
 		ImGui::Text(lang ? "Camera Distance" : (const char*)u8"Растояние камеры");
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt("   ", &cameraDistance, 50);
+		ImGui::InputInt("##cameraDistance", &cameraDistance, 50);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply Distance" : (const char*)u8"Применить расстояние")) {
@@ -2021,7 +567,7 @@ void gui::Render() noexcept
 		static int maxCameraDistance = 300;
 		ImGui::Text(lang ? "Max Camera Distance" : (const char*)u8"Максимальное Растояние камеры");
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt("    ", &maxCameraDistance, 50);
+		ImGui::InputInt("##maxCameraDistance", &maxCameraDistance, 50);
 		ImGui::PopItemWidth();
 
 		if (ImGui::Button(lang ? "Apply Max Distance" : (const char*)u8"Применить макс. расстояние")) {
@@ -2052,7 +598,10 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+}
 
+static void RenderStatistics()
+{
 	if (ImGui::CollapsingHeader(lang ? "Statistics" : (const char*)u8"Статистика"))
 	{
 		ImGui::Indent();
@@ -2200,10 +749,10 @@ void gui::Render() noexcept
 
 		static int NumberStat = -1;
 		ImGui::Text(lang ? "Select Statistics" : (const char*)u8"Выбрать Статистику");
-		ImGui::Combo(" ", &NumberStat, Stats, IM_ARRAYSIZE(Stats));
+		ImGui::Combo("##selectStat", &NumberStat, Stats, IM_ARRAYSIZE(Stats));
 		static int Stat = 0;
 		ImGui::PushItemWidth(300);
-		ImGui::InputInt("     ", &Stat);
+		ImGui::InputInt("##statValue", &Stat);
 		ImGui::PopItemWidth();
 		if (ImGui::Button(lang ? "Change Statistics" : (const char*)u8"Изменить Статистику")) {
 			change_value_hobbit<float>((LPDWORD)0x0075C034 + NumberStat, Stat);
@@ -2211,7 +760,10 @@ void gui::Render() noexcept
 
 		ImGui::Unindent();
 	}
+}
 
+static void RenderQuestItems()
+{
 	if (ImGui::CollapsingHeader(lang ? "Quest Items" : (const char*)u8"Квестовые предметы"))
 	{
 		ImGui::Indent();
@@ -2324,7 +876,7 @@ void gui::Render() noexcept
 		ImGui::Separator();
 
 		static int questItem = -1;
-		ImGui::Combo("   ", &questItem, questItems, IM_ARRAYSIZE(questItems));
+		ImGui::Combo("##questItem", &questItem, questItems, IM_ARRAYSIZE(questItems));
 
 		if (ImGui::Button(lang ? "Give quest item" : (const char*)u8"Выдать квестовый предмет")) {
 			plusA_value_hobbit<float>((LPBYTE)0x0075BE98 + questItem * 4, 1); //функция выдачи квестового предмета
@@ -2334,7 +886,10 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+}
 
+static void RenderItems()
+{
 	if (ImGui::CollapsingHeader(lang ? "Items" : (const char*)u8"Предметы"))
 	{
 		ImGui::Indent();
@@ -2401,7 +956,7 @@ void gui::Render() noexcept
 		ImGui::Text(lang ? "Items" : (const char*)u8"Предметы");
 		ImGui::Separator();
 
-		ImGui::Combo("     ", &item, items, IM_ARRAYSIZE(items));
+		ImGui::Combo("##itemSelect", &item, items, IM_ARRAYSIZE(items));
 
 		if (ImGui::Button(lang ? "Give item" : (const char*)u8"Выдать предмет")) {
 			plusA_value_hobbit<float>((LPBYTE)0x0075BDB0 + item * 4, 1); //функция выдачи предмета
@@ -2417,6 +972,10 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+}
+
+static void RenderSpecialOptions()
+{
 	if (ImGui::CollapsingHeader(lang ? "Special options" : (const char*)u8"Специальные опции"))
 	{
 		ImGui::Indent();
@@ -2461,10 +1020,14 @@ void gui::Render() noexcept
 		ImGui::Unindent();
 
 	}
+}
 
+static void RenderRingSettings()
+{
 	if (ImGui::CollapsingHeader(lang ? "Ring settings" : (const char*)u8"Настройки кольца"))
 	{
 		ImGui::Indent();
+		ImGui::SetNextItemWidth(300);
 		ImGui::ColorPicker4("Color Picker", (float*)&color, ImGuiColorEditFlags_PickerHueWheel);
 
 
@@ -2527,7 +1090,10 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+}
 
+static void RenderComplicatedOptions()
+{
 	if (ImGui::CollapsingHeader(lang ? "Complicated options" : (const char*)u8"Сложные опции"))
 	{
 		ImGui::Indent();
@@ -2548,6 +1114,10 @@ void gui::Render() noexcept
 		}
 		ImGui::Unindent();
 	}
+}
+
+static void RenderSkinchanger()
+{
 	if (ImGui::CollapsingHeader(lang ? "Skinchanger" : (const char*)u8"Скинчейнджер"))
 	{
 		ImGui::Text(lang ? "Restart the level/Load save\nafter skin selection" :
@@ -2556,7 +1126,12 @@ void gui::Render() noexcept
 
 		displaySkinButtons(lang);
 	}
+}
 
+// Per-frame effects driven by the toggles above. Runs every frame regardless
+// of which header is open.
+static void ApplyPerFrameMods()
+{
 	if (randommod == true) {
 		RandomMod(vremaeffectof);
 	}
@@ -2580,21 +1155,10 @@ void gui::Render() noexcept
 	}
 	if (stones == true)
 		change_value_hobbit<float>((LPVOID)0x0075BDB4, 10);
+}
 
-	showObjectList();
-	showNPCTest();
-	showSpawnTest();
-	showPropsTest();
-
-	ImGui::Text("");
-	ImGui::Text("");
-	ImGui::Text("");
-	ImGui::Text("");
-	ImGui::Text("");
-	ImGui::Text("");
-	//change_value_hobbit<float>((LPVOID)0x0F96D9D0, read_value_hobbit<float>((LPVOID)0x0F9685E8));
-	//change_value_hobbit<float>((LPVOID)0x0F96D9D8, read_value_hobbit<float>((LPVOID)0x0F9685F4));
-
+static void RenderLinks()
+{
 	ImGui::Text(lang ? "Our links" : (const char*)u8"Наши ссылки");
 	ImGui::Separator();
 
@@ -2609,6 +1173,108 @@ void gui::Render() noexcept
 	if (ImGui::Button(lang ? "Hobbit Technical Discord" : (const char*)u8"Технический канал Хоббита в Дискорде")) {
 		ShellExecute(NULL, L"open", L"https://discord.gg/hvzB3maxQ3", 0, 0, SW_SHOWNORMAL);
 	}
+}
+
+static void RenderMaterials()
+{
+	if (ImGui::CollapsingHeader(lang ? "Material" : (const char*)u8"Материал"))
+	{
+		static void* pMaterial;
+		ImGui::Text("pMaterial = %p", pMaterial);
+
+		static char mat_name[256];
+		ImGui::InputText("Name", mat_name, sizeof(mat_name));
+
+		if (ImGui::Button("Search")) {
+			pMaterial = memsearch(mat_name, sizeof(mat_name));
+		}
+
+		if (pMaterial) {
+			char* _pTint = ((char*)pMaterial) + 0x11C;
+			float* pTint = (float*)_pTint;
+			float tint[4];
+
+			tint[0] = pTint[0] / 255.f;
+			tint[1] = pTint[1] / 255.f;
+			tint[2] = pTint[2] / 255.f;
+			tint[3] = pTint[3] / 255.f;
+
+			if (ImGui::ColorEdit4("TintColor", tint)) {
+				pTint[0] = tint[0] * 255.f;
+				pTint[1] = tint[1] * 255.f;
+				pTint[2] = tint[2] * 255.f;
+				pTint[3] = tint[3] * 255.f;
+			}
+		}
+	}
+}
+
+void gui::Render() noexcept
+{
+	//ImGui::SetNextWindowPos({ 0, 0 });
+
+	ImGui::Begin(
+		"The Hobbit KINGJOYER v1.5 by king174rus, Mr_Kliff & Modera",
+		&isRunning,
+		ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_NoCollapse
+	);
+
+	ImGui::Text("The Hobbit KINGJOYER");
+	ImGui::Text("");
+
+	if (ImGui::Button(!lang ? "Change Language" : (const char*)u8"Поменять язык")) lang = !lang;
+
+	//if (ImGui::Button("Demo Window"))
+	//	g_bDemoWindow = true;
+	//if (g_bDemoWindow)
+	//	ImGui::ShowDemoWindow(&g_bDemoWindow);
+
+	ImGui::Separator();
+	ImGui::Text("");
+
+	if (ImGui::Checkbox(lang ? "Developer mode" : (const char*)u8"Режим Разработчика", &developerMode)) {
+		functions::developerMode();
+	}
+	if (ImGui::Checkbox(lang ? "60 FPS" : (const char*)u8"60 фпс", &fps60)) {
+		functions::fps60();
+	}
+	if (ImGui::Checkbox(lang ? "Hotkeys" : (const char*)u8"Горячие клавиши", &enableKeybinds)) {
+
+	}
+	if (ImGui::Checkbox(lang ? "Overlay settings" : (const char*)u8"Отображать оверлей", &drawSettings)) {
+
+	}
+
+	RenderRendersSection();
+	RenderLayers();
+	RenderSdkTesting();
+	RenderCheats();
+	RenderMaterials();
+	RenderCamera();
+	RenderStatistics();
+	RenderQuestItems();
+	RenderItems();
+	RenderSpecialOptions();
+	RenderRingSettings();
+	RenderComplicatedOptions();
+	RenderSkinchanger();
+
+	ApplyPerFrameMods();
+
+	showObjectList();
+	showNPCTest();
+	showSpawnTest();
+	showPropsTest();
+
+	ImGui::Text("");
+	ImGui::Text("");
+	ImGui::Text("");
+	ImGui::Text("");
+	ImGui::Text("");
+	ImGui::Text("");
+
+	RenderLinks();
 
 	ImGui::End();
 

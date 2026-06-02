@@ -93,6 +93,9 @@
     <ClInclude Include="kingjoyer\gui.h">
       <Filter>kingjoyer</Filter>
     </ClInclude>
+    <ClInclude Include="kingjoyer\gui_internal.h">
+      <Filter>kingjoyer</Filter>
+    </ClInclude>
     <ClInclude Include="kingjoyer\HobbitMemoryAccess.h">
       <Filter>kingjoyer</Filter>
     </ClInclude>
@@ -225,6 +228,18 @@
       <Filter>kingjoyer</Filter>
     </ClCompile>
     <ClCompile Include="kingjoyer\gui.cpp">
+      <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\gui_platform.cpp">
+      <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\gui_layers.cpp">
+      <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\gui_sdk_panels.cpp">
+      <Filter>kingjoyer</Filter>
+    </ClCompile>
+    <ClCompile Include="kingjoyer\gui_skins.cpp">
       <Filter>kingjoyer</Filter>
     </ClCompile>
     <ClCompile Include="kingjoyer\HobbitMemoryAccess.cpp">
