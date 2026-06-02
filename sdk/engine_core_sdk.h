@@ -31,6 +31,7 @@ struct AnimInfo;
 //   Singleton vtable hot slots: +0x14 SetPosition, +0x28 GetPosition,
 //   +0x44 OnActivate, +0x48 SetName, +0x60 Render, +0x154 GetModel/Skeleton.
 // ============================================================================
+
 /*
 struct object {
 	void** vtable;            // +0x00

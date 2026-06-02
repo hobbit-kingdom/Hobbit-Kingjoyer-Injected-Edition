@@ -19,9 +19,13 @@
 #include "../sdk/meridian_sdk.h"
 #include "../sdk/hud_sdk.h"
 #include "../sdk/projectile_sdk.h"
+#include "../sdk/chests_sdk.h"
+#include "../sdk/levels_sdk.h"
+#include "../sdk/weather_sdk.h"
+#include "../sdk/custom_page.h"
 #include "../sdk/bilbo_sdk.h"
 
-
+#include "../minhook/MinHook.h"
 
 
 #include <iostream>
@@ -937,6 +941,27 @@ struct anim_group
 	// ...
 };
 
+
+static hobbit_ui::OpenDialog_t o_OpenDialog = nullptr;
+
+void* __fastcall hk_OpenDialog(void* uimgr, void* /*edx*/, void* ctx, const char* name,
+	int rL, int rT, int rR, int rB, int a, int b, int c)
+{
+	if (name && std::strcmp(name, "pause summary") == 0) {
+		hobbit_ui::BackdropMode() = hobbit_ui::BD_SUMMARY;   // summary bg
+		// -- or --
+		// hobbit_ui::BackdropMode() = hobbit_ui::BD_PANEL;
+		// hobbit_ui::BackdropScale() = 1.6f;                 // bigger panel
+		hobbit_ui::RegisterTemplate();
+		void* dlg = o_OpenDialog(uimgr, ctx, "kitchen_sink", rL, rT, rR, rB, a, b, c);
+		if (dlg) hobbit_ui::Relabel(dlg);
+		return dlg;
+	}
+	return o_OpenDialog(uimgr, ctx, name, rL, rT, rR, rB, a, b, c);
+}
+
+
+
 static void setNPCAnim(void* pNPC, int anim)
 {
 	uint32_t animAdd1 = (uint32_t)pNPC;
@@ -1002,7 +1027,6 @@ static void getNPCAnimList(void* pNPC, std::vector<std::string>& out_vec)
 		strcpy(anim_result, "ANIM OK");
 	}
 }
-
 
 static char _NPC_anim[128] = "1";
 
@@ -1182,7 +1206,7 @@ static void showPropsWindow(void)
 
 		clipper.Begin(g_objectProps.m_Count, ImGui::GetTextLineHeightWithSpacing());
 
-		while(clipper.Step())
+		while (clipper.Step())
 		{
 			for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
 			{
@@ -1525,6 +1549,33 @@ static void showSpawnTest(void)
 
 static bool g_bDemoWindow = false;
 
+typedef void(__thiscall* PauseTextBox_t)(void* self, const wchar_t* title, const wchar_t* body);
+typedef void(__thiscall* PauseSaveKiosk_t)(void* self);
+
+static const PauseTextBox_t   Pause_TextBox = (PauseTextBox_t)0x0052D9B0;
+static const PauseSaveKiosk_t Pause_SaveKiosk = (PauseSaveKiosk_t)0x0052D960; // the one you tested
+void* g_PauseMgr = (void*)0x00763208;
+
+// keep strings alive (the engine copies them, but static is safest)
+
+void ShowMyTextScreen() {
+
+	const wchar_t* kTitle = L"Hello from king174rus";
+	const wchar_t* kBody = L"Hello everyone. If you are seeing this message\nit means I'm stepping away from work\nand handing over my crown to Modera.\nI am sorry, goodbye.";
+
+	Pause_TextBox(g_PauseMgr, kTitle, kBody);   // pops the pause text screen with your text
+}
+
+
+typedef void(__thiscall* InfoBox_t)(void* self, const char* title, const wchar_t* body, int withButton);
+static const InfoBox_t InfoBox = (InfoBox_t)0x00526640;
+void* g_InfoOverlay = (void*)0x007626D0;     // the in-game info-overlay singleton
+
+void ShowMyMessage() {
+	// title is ASCII; body is wide (UTF-16). withButton: 1 = show a dismiss button, 0 = none.
+	InfoBox(g_InfoOverlay, "QUEST UPDATE", L"You found the Arkenstone!\nReturn to Thorin.", 1);
+}
+
 void gui::Render() noexcept
 {
 	//ImGui::SetNextWindowPos({ 0, 0 });
@@ -1683,8 +1734,66 @@ void gui::Render() noexcept
 		ImGui::Unindent();
 	}
 
-	if (ImGui::CollapsingHeader(lang ? "SDK" : (const char*)u8"СДК"))
+	if (ImGui::CollapsingHeader(lang ? "SDK testing" : (const char*)u8"СДК"))
 	{
+
+		if (ImGui::Button(lang ? "init hook" : (const char*)u8"init hook"))
+		{
+			MH_Initialize();
+			MH_CreateHook((void*)hobbit_ui::addr::OpenDialog, &hk_OpenDialog, (void**)&o_OpenDialog);
+			MH_EnableHook((void*)hobbit_ui::addr::OpenDialog);
+
+			hobbit_ui::OnClick() = [](int id, void* dlg) {
+				if (id == hobbit_ui::ID_BUTTON)
+					printf("A Button! slider=%d check=%d\n",
+						hobbit_ui::GetSliderValue(dlg), hobbit_ui::GetCheck(dlg));
+				// ID_CLOSE auto-closes; ID_CHECK fires on toggle
+				};
+		}
+
+		if (hobbit_ui::IsPageOpen())                       // page currently up?
+		{
+			int  v = hobbit_ui::GetSliderValue();          // 0..100   (no dlg arg!)
+			bool c = hobbit_ui::GetCheck();                // checkbox ticked?
+			ImGui::Text("slider = %d", v);
+			ImGui::Text("checkbox = %s", c ? "ON" : "OFF");
+		}
+		else
+		{
+			ImGui::TextDisabled("Custom page not open");
+		}
+
+		if (ImGui::Button(lang ? "custom menu" : (const char*)u8"cstm")) {
+			ShowMyTextScreen();
+		}
+
+		if (ImGui::Button(lang ? "custom menu2" : (const char*)u8"cstm2")) {
+			ShowMyMessage();
+		}
+
+		static float fade_time = 0x1;
+
+		ImGui::PushItemWidth(100);
+		ImGui::InputFloat("Fade time", &fade_time, 1);
+
+		if (ImGui::Button(lang ? "Turn on rain" : (const char*)u8"wearhth")) {
+
+			typedef void(__thiscall* EnableRain_t)(void* self, char* on, float fade);
+			static const EnableRain_t EnableRain = (EnableRain_t)0x00551280;
+			void* g_weather = (void*)0x00771B70;
+
+			EnableRain(g_weather, (char*)1, fade_time);   // rain ON  (2s fade)
+		}
+
+		if (ImGui::Button(lang ? "Turn off rain" : (const char*)u8"wearhtoff")) {
+
+			typedef void(__thiscall* EnableRain_t)(void* self, char* on, float fade);
+			static const EnableRain_t EnableRain = (EnableRain_t)0x00551280;
+			void* g_weather = (void*)0x00771B70;
+
+			EnableRain(g_weather, (char*)0, fade_time);   // rain OFF
+		}
+
 		bilbo_sdk::bilbo* b = bilbo_sdk::fn::GetBilbo();
 
 		const char* name = bilbo_sdk::fn::State_GetName(
@@ -1692,75 +1801,29 @@ void gui::Render() noexcept
 
 		ImGui::Text(name);
 
-		if (ImGui::Button(lang ? "Ring Test" : (const char*)u8"Тест Кольца")) {
-
-			bilbo_sdk::fn::SetRingEquipped(b, /*equip=*/1, /*instant=*/1);
-		}
-
-		if (ImGui::Button(lang ? "resettosafepos" : (const char*)u8"резет в сейф позицию")) {
+		if (ImGui::Button(lang ? "Reset to safe pos" : (const char*)u8"резет в сейф позицию")) {
 			bilbo_sdk::fn::ResetToSafePos(bilbo_sdk::fn::GetBilbo());
 		}
 
-		if (ImGui::Button(lang ? "throwstone" : (const char*)u8"кинуть камень")) {
-			bilbo_sdk::fn::Combat_ThrowStone(bilbo_sdk::fn::GetBilbo(), 3);
+		if (ImGui::Button(lang ? "Load last save" : (const char*)u8"lls")) {
+
+			levels_sdk::save_pedestal_global::RequestLoadLastSave();
+
 		}
 
-		static char _NPC_Status1[128] = "request destroy";
-		static char _NPC_Guid1[128] = "ABCABCAB_CABCABC0";
+		static int projectile_id = 0x1;
 
-		uint32_t guid_high1;
-		uint32_t guid_low1;
+		ImGui::PushItemWidth(100);
+		ImGui::InputInt("Projectile id", &projectile_id, 1);
 
-		sscanf(_NPC_Guid1, "%X_%X", &guid_high1, &guid_low1);
+		if (ImGui::Button(lang ? "Projectile spawn" : (const char*)u8"proj spawn")) {
+			vector3 a;  getBilboPos(a);
+			vector3 b = { a.X + 250, a.Y + 450, a.Z };
 
-		uint64_t myN = (uint64_t(guid_high1) << 32) | guid_low1;
-
-		ImGui::Text((to_string(myN)).c_str());
-
-		ImGui::InputText(lang ? "Obj Guid:" : (const char*)u8"Obj Guid", _NPC_Guid1, sizeof(_NPC_Guid1));
-
-		if (ImGui::Button(lang ? "req destroy Obj" : (const char*)u8"req destory Obj")) {
-			uint32_t guid_high;
-			uint32_t guid_low;
-
-			if (sscanf(_NPC_Guid1, "%X_%X", &guid_high, &guid_low) == 2) {
-
-				object_RequestDestroy((object*)getObjectByGUID((uint64_t(guid_high) << 32) | guid_low));
-			}
-		}
-
-
-		float rect[4] = { 10, 10, 210, 50 };
-		hud_sdk::fn::DrawRect(rect, 0x80000000u, /*outline=*/0);
-
-
-
-		hud_sdk::fn::DrawAxisGizmo(20.0f);
-
-		hud_sdk::fn::RenderSkipControl(hud_sdk::fn::GetHud());
-
-
-
-		hud_sdk::fn::RenderSmallHealthBar(hud_sdk::fn::GetHud(), 1);
-
-		if (ImGui::Button(lang ? "project spawn" : (const char*)u8"proj spawn")) {
-
-			uint32_t guid_high;
-			uint32_t guid_low;
-
-			if (sscanf(_NPC_Guid1, "%X_%X", &guid_high, &guid_low) == 2) {
-
-				vector3 a = { 0,0,0 };
-				vector3 b = { 100,0,0 };
-
-				projectile_sdk::fn::CreateProjectileByType((uint32_t)projectile_sdk::eProjType::ThrownStone, myN, a, b);
-			}
-
-
+			projectile_sdk::fn::CreateProjectileByType((uint32_t)projectile_id, 0xABCABCABCABCABC0, a, b);
 		}
 
 	}
-
 
 	if (ImGui::CollapsingHeader(lang ? "Cheats" : (const char*)u8"Читы"))
 	{

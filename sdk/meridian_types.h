@@ -9,10 +9,10 @@
 // are absolute and g_delta stays 0. If you ever load the image at a non-
 // preferred base, set meridian::g_delta = actualBase - 0x400000 once at init.
 namespace meridian {
-	inline std::intptr_t  g_delta = 0;
-	inline void* rebase(std::uintptr_t preferred) {
-		return reinterpret_cast<void*>(static_cast<std::uintptr_t>(preferred) + g_delta);
-	}
+  inline std::intptr_t  g_delta = 0;
+  inline void* rebase(std::uintptr_t preferred) {
+    return reinterpret_cast<void*>(static_cast<std::uintptr_t>(preferred) + g_delta);
+  }
 }
 
 // ---- Known value types ------------------------------------------------------
@@ -46,9 +46,9 @@ typedef void          code;          // Ghidra 'code' (used only as code*)
 // Recovered sizes; treated as opaque blobs so by-value calls compile. Sizes are
 // approximate — prefer pointer/reference variants for ABI-critical paths.
 #ifndef MERIDIAN_NO_ENGINE_VALUE_TYPES
-struct xstring { unsigned char _bytes[0x2c]; };  // sizeof 0x2c (confirmed)
-struct xwstring { unsigned char _bytes[0x2c]; };  // wide string (approx)
-struct property { unsigned char _bytes[0x258]; }; // tagged variant (~0x21c-0x258)
+struct xstring       { unsigned char _bytes[0x2c]; };  // sizeof 0x2c (confirmed)
+struct xwstring      { unsigned char _bytes[0x2c]; };  // wide string (approx)
+struct property      { unsigned char _bytes[0x258]; }; // tagged variant (~0x21c-0x258)
 struct property_desc { unsigned char _bytes[0x108]; }; // editor schema row (0x108)
 #endif
 

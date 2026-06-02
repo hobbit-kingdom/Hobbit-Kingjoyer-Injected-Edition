@@ -90,6 +90,10 @@
       <AdditionalDependencies>d3d9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "C:\Users\Vernillion\Desktop\Hobbit\Hobbit-Kingjoyer-Injected-Edition\Release\hobbit.dll" "C:\Games\Sierra\The Hobbit(TM)\"
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imconfig.h" />
@@ -124,14 +128,22 @@
     <ClInclude Include="minhook\trampoline.h" />
     <ClInclude Include="sdk\animation_sdk.h" />
     <ClInclude Include="sdk\bilbo_sdk.h" />
+    <ClInclude Include="sdk\camera_sdk.h" />
+    <ClInclude Include="sdk\chests_sdk.h" />
     <ClInclude Include="sdk\cinema_sdk.h" />
+    <ClInclude Include="sdk\collision_sdk.h" />
+    <ClInclude Include="sdk\custom_page.h" />
     <ClInclude Include="sdk\engine_core_sdk.h" />
     <ClInclude Include="sdk\hud_sdk.h" />
+    <ClInclude Include="sdk\levels_sdk.h" />
+    <ClInclude Include="sdk\menus_sdk.h" />
     <ClInclude Include="sdk\meridian_sdk.h" />
     <ClInclude Include="sdk\meridian_types.h" />
     <ClInclude Include="sdk\music_sdk.h" />
     <ClInclude Include="sdk\npc_ai_sdk.h" />
     <ClInclude Include="sdk\projectile_sdk.h" />
+    <ClInclude Include="sdk\triggers_sdk.h" />
+    <ClInclude Include="sdk\weather_sdk.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp" />
