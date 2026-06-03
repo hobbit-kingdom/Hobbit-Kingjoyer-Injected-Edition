@@ -25,9 +25,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <cfloat>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 static std::vector<std::string> objects;
 
@@ -817,6 +819,51 @@ static void showSpawnTest_(void)
 
 const char* ObjectClasses[] = { "RigidInstance", "NPC", "Marker" };
 
+// Spawn template files (*.export) found in ./Templates/, used by Spawn Test.
+static std::vector<std::string> g_templateFiles;
+
+static void refreshTemplateList()
+{
+	namespace fs = std::filesystem;
+
+	g_templateFiles.clear();
+
+	fs::path dir = "./Templates";
+	if (!fs::exists(dir) || !fs::is_directory(dir))
+		return;
+
+	for (const auto& entry : fs::directory_iterator(dir)) {
+		if (!entry.is_regular_file())
+			continue;
+
+		fs::path p = entry.path();
+
+		// case-insensitive ".export" match
+		std::string ext = p.extension().string();
+		for (char& c : ext)
+			c = (char)tolower((unsigned char)c);
+
+		if (ext == ".export")
+			g_templateFiles.push_back(p.filename().string());
+	}
+}
+
+// Guesses the spawn object type from a template filename: "_npc" -> NPC,
+// "_rigid" -> RigidInstance (both case-insensitive). Returns the matching
+// ObjectClasses index, or -1 if the name hints at nothing.
+static int detectObjectTypeFromName(const std::string& name)
+{
+	std::string lower = name;
+	for (char& c : lower)
+		c = (char)tolower((unsigned char)c);
+
+	if (lower.find("_npc") != std::string::npos)
+		return 1; // NPC
+	if (lower.find("_rigid") != std::string::npos)
+		return 0; // RigidInstance
+	return -1;
+}
+
 void showSpawnTest(void)
 {
 	if (ImGui::CollapsingHeader("Spawn Test"))
@@ -833,6 +880,42 @@ void showSpawnTest(void)
 		ImGui::Text(lang ? "Select Object Type" : (const char*)u8"Выбирите тип объекта");
 		ImGui::Combo("##spawnObjectType", &objectIndex, ObjectClasses, IM_ARRAYSIZE(ObjectClasses));
 
+		// Template file selector: lists the *.export files found in ./Templates/.
+		static bool templatesLoaded = false;
+		if (!templatesLoaded) {
+			refreshTemplateList();
+			templatesLoaded = true;
+		}
+
+		static int templateIndex = 0;
+		if (templateIndex >= (int)g_templateFiles.size())
+			templateIndex = 0;
+
+		ImGui::Text(lang ? "Template file (in ./Templates/)" : (const char*)u8"Файл шаблона (в ./Templates/)");
+
+		if (ImGui::Button(lang ? "Refresh templates" : (const char*)u8"Обновить шаблоны"))
+			refreshTemplateList();
+
+		const char* templatePreview = g_templateFiles.empty()
+			? (lang ? "(no .export files)" : (const char*)u8"(нет .export файлов)")
+			: g_templateFiles[templateIndex].c_str();
+
+		if (ImGui::BeginCombo("##templateSelect", templatePreview)) {
+			for (int i = 0; i < (int)g_templateFiles.size(); i++) {
+				bool selected = (i == templateIndex);
+				if (ImGui::Selectable(g_templateFiles[i].c_str(), selected)) {
+					templateIndex = i;
+					// auto-pick the object type from the filename hint
+					int detected = detectObjectTypeFromName(g_templateFiles[i]);
+					if (detected >= 0)
+						objectIndex = detected;
+				}
+				if (selected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+
 		if (ImGui::Button(lang ? "Do Spawn" : (const char*)u8"Заспавнить"))
 		{
 			spawned_guid = g_ObjMgr.CreateObject(ObjectClasses[objectIndex], guid());
@@ -840,15 +923,21 @@ void showSpawnTest(void)
 			object* pMarker = (object*)getObjectByGUID(spawned_guid.Guid);
 			if (pMarker)
 			{
+				if (!g_templateFiles.empty() && templateIndex >= 0 && templateIndex < (int)g_templateFiles.size())
 				{
+					char template_path[300];
+					sprintf_s(template_path, "./Templates/%s", g_templateFiles[templateIndex].c_str());
+
 					bin_in BinIn{};
-					if (BinIn.OpenFile("./Templates/Test.export") && BinIn.ReadHeader() && BinIn.ReadFields())
+					if (BinIn.OpenFile(template_path) && BinIn.ReadHeader() && BinIn.ReadFields())
 					{
 						pMarker->OnImport(BinIn);
 					}
 				}
 
 				vector3 P; getBilboPos(P);
+				P.X += 50;
+				P.Z += 50;
 				pMarker->Move(P, 1);
 			}
 		}
