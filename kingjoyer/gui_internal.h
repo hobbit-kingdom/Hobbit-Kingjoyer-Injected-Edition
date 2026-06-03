@@ -27,6 +27,15 @@ void displaySkinButtons(bool lang);
 // Renders the "Layers" collapsing header (refresh / select / reload UI).
 void RenderLayers();
 
+// ---- Config persistence (kingjoyer_config.txt, in gui_sdk_panels.cpp) ----
+// Text inputs remembered across game sessions. Call ensureConfigLoaded() once
+// before reading a buffer, and saveConfig() after editing one.
+extern char g_npcGuid[128];   // NPC anim panel GUID
+extern char g_propsGuid[32];  // props test panel GUID
+extern char g_matName[256];   // material changer name
+void ensureConfigLoaded();
+void saveConfig();
+
 // ---- gui_sdk_panels.cpp ----
 // Reads Bilbo's current world position into outPos.
 void getBilboPos(vector3& outPos);

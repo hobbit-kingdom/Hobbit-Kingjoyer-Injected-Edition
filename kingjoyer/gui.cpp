@@ -1177,16 +1177,19 @@ static void RenderLinks()
 
 static void RenderMaterials()
 {
+	ensureConfigLoaded();
+
 	if (ImGui::CollapsingHeader(lang ? "Material" : (const char*)u8"Материал"))
 	{
 		static void* pMaterial;
 		ImGui::Text("pMaterial = %p", pMaterial);
 
-		static char mat_name[256];
-		ImGui::InputText("Name", mat_name, sizeof(mat_name));
+		// Persist the material name so it survives game restarts.
+		if (ImGui::InputText("Name", g_matName, sizeof(g_matName)))
+			saveConfig();
 
 		if (ImGui::Button("Search")) {
-			pMaterial = memsearch(mat_name, sizeof(mat_name));
+			pMaterial = memsearch(g_matName, sizeof(g_matName));
 		}
 
 		if (pMaterial) {

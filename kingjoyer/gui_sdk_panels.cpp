@@ -31,6 +31,68 @@
 
 static std::vector<std::string> objects;
 
+// ---- Config persistence ---------------------------------------------------
+// Remembers a few text inputs across game sessions (NPC-anim GUID, props-test
+// GUID, material name). Stored next to the injected DLL (the game's working
+// directory) as a tiny key=value text file. If the file is missing the fields
+// keep their defaults and the file is (re)created the first time one is edited.
+static const char* kConfigPath = "./kingjoyer_config.txt";
+
+char g_npcGuid[128] = "0D8AD910_E8851002";
+char g_propsGuid[32] = "";
+char g_matName[256] = "";
+
+void saveConfig()
+{
+	FILE* f = fopen(kConfigPath, "w");
+	if (!f)
+		return;
+	fprintf(f, "npc_guid=%s\n", g_npcGuid);
+	fprintf(f, "props_guid=%s\n", g_propsGuid);
+	fprintf(f, "mat_name=%s\n", g_matName);
+	fclose(f);
+}
+
+// Loads the saved values once per session into the shared buffers above.
+void ensureConfigLoaded()
+{
+	static bool loaded = false;
+	if (loaded)
+		return;
+	loaded = true;
+
+	FILE* f = fopen(kConfigPath, "r");
+	if (!f)
+		return; // no file yet -> keep defaults, created on first edit
+
+	char line[512];
+	while (fgets(line, sizeof(line), f)) {
+		line[strcspn(line, "\r\n")] = '\0'; // strip trailing newline
+
+		char* eq = strchr(line, '=');
+		if (!eq)
+			continue;
+		*eq = '\0';
+		const char* key = line;
+		const char* value = eq + 1;
+
+		if (strcmp(key, "npc_guid") == 0) {
+			strncpy(g_npcGuid, value, sizeof(g_npcGuid));
+			g_npcGuid[sizeof(g_npcGuid) - 1] = '\0';
+		}
+		else if (strcmp(key, "props_guid") == 0) {
+			strncpy(g_propsGuid, value, sizeof(g_propsGuid));
+			g_propsGuid[sizeof(g_propsGuid) - 1] = '\0';
+		}
+		else if (strcmp(key, "mat_name") == 0) {
+			strncpy(g_matName, value, sizeof(g_matName));
+			g_matName[sizeof(g_matName) - 1] = '\0';
+		}
+	}
+
+	fclose(f);
+}
+
 uint64_t getObjectGUID(void* pEntity)
 {
 	uint64_t GUID = 0;
@@ -279,19 +341,22 @@ std::vector<std::string> _NPC_anim_list;
 void showNPCTest(void)
 {
 	static char _NPC_Status[128] = "NOSTATUS";
-	static char _NPC_Guid[128] = "0D8AD910_E8851002";
+
+	ensureConfigLoaded();
 
 	if (ImGui::CollapsingHeader(lang ? "NPC Anim" : (const char*)u8"НПС Анимация"))
 	{
 		ImGui::Text(_NPC_Status);
 
-		ImGui::InputText(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", _NPC_Guid, sizeof(_NPC_Guid));
+		// Persist the entered GUID so it survives game restarts.
+		if (ImGui::InputText(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", g_npcGuid, sizeof(g_npcGuid)))
+			saveConfig();
 
 		if (ImGui::Button(lang ? "Query NPC" : (const char*)u8"Найти НПС")) {
 			uint32_t guid_high;
 			uint32_t guid_low;
 
-			if (sscanf(_NPC_Guid, "%X_%X", &guid_high, &guid_low) == 2) {
+			if (sscanf(g_npcGuid, "%X_%X", &guid_high, &guid_low) == 2) {
 				pNPC = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
 				if (pNPC) {
 					strcpy_s(_NPC_Status, "NPC OK");
@@ -655,19 +720,20 @@ void showPropsTest(void)
 {
 	static char _object_Status[32];
 
+	ensureConfigLoaded();
+
 	if (ImGui::CollapsingHeader(lang ? "Props Test" : (const char*)u8"Тест Свойств Объектов"))
 	{
-		static char _object_Guid[32];
-
-
 		ImGui::Text(_object_Status);
 
-		ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", _object_Guid, sizeof(_object_Guid));
+		// Persist the entered GUID so it survives game restarts.
+		if (ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", g_propsGuid, sizeof(g_propsGuid)))
+			saveConfig();
 
 		if (ImGui::Button(lang ? "Query Object" : (const char*)u8"Свойтва Объекта")) {
 			guid objectGuid;
 
-			if (tryParseGuidString(_object_Guid, objectGuid)) {
+			if (tryParseGuidString(g_propsGuid, objectGuid)) {
 				object* pObject = (object*)getObjectByGUID(objectGuid.Guid);
 				if (pObject) {
 					strcpy_s(_object_Status, "Object OK");
