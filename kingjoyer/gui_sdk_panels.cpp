@@ -43,6 +43,7 @@ static const char* kConfigPath = "./kingjoyer_config.txt";
 char g_npcGuid[128] = "0D8AD910_E8851002";
 char g_propsGuid[32] = "";
 char g_matName[256] = "";
+char g_healthMeterGuid[32] = "";
 
 void saveConfig()
 {
@@ -52,6 +53,7 @@ void saveConfig()
 	fprintf(f, "npc_guid=%s\n", g_npcGuid);
 	fprintf(f, "props_guid=%s\n", g_propsGuid);
 	fprintf(f, "mat_name=%s\n", g_matName);
+	fprintf(f, "health_guid=%s\n", g_healthMeterGuid);
 	fclose(f);
 }
 
@@ -89,6 +91,10 @@ void ensureConfigLoaded()
 		else if (strcmp(key, "mat_name") == 0) {
 			strncpy(g_matName, value, sizeof(g_matName));
 			g_matName[sizeof(g_matName) - 1] = '\0';
+		}
+		else if (strcmp(key, "health_guid") == 0) {
+			strncpy(g_healthMeterGuid, value, sizeof(g_healthMeterGuid));
+			g_healthMeterGuid[sizeof(g_healthMeterGuid) - 1] = '\0';
 		}
 	}
 
@@ -340,6 +346,23 @@ static char _NPC_anim[128] = "1";
 
 std::vector<std::string> _NPC_anim_list;
 
+// Rejects quote characters as they're typed/pasted, so a GUID pasted as
+// "ABCABCAB_CABCABC0" lands in the field clean.
+static int guidCharFilter(ImGuiInputTextCallbackData* data)
+{
+	if (data->EventChar == '"' || data->EventChar == '\'')
+		return 1; // discard this character
+	return 0;
+}
+
+// InputText wrapper for GUID fields: same return value as InputText (true on
+// edit) but strips quote characters via the filter above.
+bool ShowGuidInput(const char* label, char* buf, size_t bufSize)
+{
+	return ImGui::InputText(label, buf, bufSize,
+		ImGuiInputTextFlags_CallbackCharFilter, guidCharFilter);
+}
+
 void showNPCTest(void)
 {
 	static char _NPC_Status[128] = "NOSTATUS";
@@ -351,7 +374,7 @@ void showNPCTest(void)
 		ImGui::Text(_NPC_Status);
 
 		// Persist the entered GUID so it survives game restarts.
-		if (ImGui::InputText(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", g_npcGuid, sizeof(g_npcGuid)))
+		if (ShowGuidInput(lang ? "NPC Guild:" : (const char*)u8"НПС Guild", g_npcGuid, sizeof(g_npcGuid)))
 			saveConfig();
 
 		if (ImGui::Button(lang ? "Query NPC" : (const char*)u8"Найти НПС")) {
@@ -729,7 +752,7 @@ void showPropsTest(void)
 		ImGui::Text(_object_Status);
 
 		// Persist the entered GUID so it survives game restarts.
-		if (ImGui::InputText(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", g_propsGuid, sizeof(g_propsGuid)))
+		if (ShowGuidInput(lang ? "Object Guid:" : (const char*)u8"Guid Объекта", g_propsGuid, sizeof(g_propsGuid)))
 			saveConfig();
 
 		if (ImGui::Button(lang ? "Query Object" : (const char*)u8"Свойтва Объекта")) {
@@ -875,6 +898,9 @@ void showSpawnTest(void)
 		sprintf(str, "%X_%X", guid_high, guid_low);
 
 		ImGui::Text(lang ? "Spawned GUID: %s" : (const char*)u8"Заспавнен GUID: %s", str);
+		ImGui::SameLine();
+		if (ImGui::SmallButton(lang ? "Copy" : (const char*)u8"Копировать"))
+			ImGui::SetClipboardText(str);
 
 		static int objectIndex = 0;
 		ImGui::Text(lang ? "Select Object Type" : (const char*)u8"Выбирите тип объекта");

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
+
 // Shared declarations for the split-up GUI translation units.
 //
 // gui.cpp used to be one giant file. It has been broken into category files:
@@ -30,15 +33,23 @@ void RenderLayers();
 // ---- Config persistence (kingjoyer_config.txt, in gui_sdk_panels.cpp) ----
 // Text inputs remembered across game sessions. Call ensureConfigLoaded() once
 // before reading a buffer, and saveConfig() after editing one.
-extern char g_npcGuid[128];   // NPC anim panel GUID
-extern char g_propsGuid[32];  // props test panel GUID
-extern char g_matName[256];   // material changer name
+extern char g_npcGuid[128];        // NPC anim panel GUID
+extern char g_propsGuid[32];       // props test panel GUID
+extern char g_matName[256];        // material changer name
+extern char g_healthMeterGuid[32]; // SDK testing health-meter enemy GUID
 void ensureConfigLoaded();
 void saveConfig();
 
 // ---- gui_sdk_panels.cpp ----
 // Reads Bilbo's current world position into outPos.
 void getBilboPos(vector3& outPos);
+
+// Finds a live game object by its 64-bit GUID (returns null if not found).
+void* getObjectByGUID(uint64_t guid);
+
+// InputText wrapper for GUID fields: strips quote characters as they are typed
+// or pasted. Returns true on edit (same as ImGui::InputText).
+bool ShowGuidInput(const char* label, char* buf, size_t bufSize);
 
 // Custom in-game UI helpers.
 void InitDialogHook();   // installs the OpenDialog MinHook (the "init hook" button)

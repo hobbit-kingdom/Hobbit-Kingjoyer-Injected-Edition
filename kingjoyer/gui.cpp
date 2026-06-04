@@ -34,9 +34,11 @@
 #include "../sdk/weather_sdk.h"
 #include "../sdk/custom_page.h"
 #include "../sdk/bilbo_sdk.h"
+#include "../sdk/npc_ai_sdk.h"
 
 #include <iostream>
 #include "string"
+#include <cstdio>
 #include <chrono>
 #include <random>
 #include <thread>
@@ -281,10 +283,46 @@ static void RenderRendersSection()
 	}
 }
 
+inline void EnsureMeterLoaded(int index)
+{
+	void*    hud  = (void*)0x0075e388;
+	unsigned mask = *(unsigned*)((char*)hud + 0x380);
+	if (mask & (1u << index)) return;                  // already loaded — skip
+	((void(__thiscall*)(void*, int))0x004f1f10)(hud, index);
+	*(unsigned*)((char*)hud + 0x380) |= (1u << index); // mark loaded
+}
+
 static void RenderSdkTesting()
 {
+	ensureConfigLoaded();
+
 	if (ImGui::CollapsingHeader(lang ? "SDK testing" : (const char*)u8"СДК"))
 	{
+
+		// Draw the health meter for an enemy identified by GUID.
+		// (persisted to kingjoyer_config.txt)
+		ImGui::SetNextItemWidth(200);
+		if (ShowGuidInput("Enemy GUID##healthMeter", g_healthMeterGuid, sizeof(g_healthMeterGuid)))
+			saveConfig();
+
+		// "on" parameter (0 or 1) passed to SetDrawHealthMeter.
+		static bool healthMeterOn = true;
+		ImGui::Checkbox("show/hide##healthMeter", &healthMeterOn);
+
+		if (ImGui::Button(lang ? "drawhealthmeter" : (const char*)u8"drawhealthmeter"))
+		{
+			EnsureMeterLoaded(4); // 4 is to load corwins/default meter, others won't work on regular npc's
+
+			uint32_t guid_high;
+			uint32_t guid_low;
+			if (sscanf(g_healthMeterGuid, "%X_%X", &guid_high, &guid_low) == 2)
+			{
+				void* pObj = getObjectByGUID((uint64_t(guid_high) << 32) | guid_low);
+				if (pObj)
+					npc_ai::NPCObject_SetDrawHealthMeter((NPCObject*)pObj, healthMeterOn);
+			}
+		}
+
 
 		if (ImGui::Button(lang ? "init hook" : (const char*)u8"init hook"))
 		{
