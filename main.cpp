@@ -307,6 +307,7 @@ long __stdcall hkEndScene(LPDIRECT3DDEVICE9 pDevice)
 
 	if (gui::enableKeybinds) keybindings();
 	path_navigator::Update(window);
+	gui::UpdateCamera(); // runs every frame, even while the menu is hidden
 
 	if (gui::drawSettings) DrawSettings();
 

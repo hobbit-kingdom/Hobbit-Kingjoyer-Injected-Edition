@@ -40,6 +40,10 @@ namespace gui
 	void EndRender() noexcept;
 	void Render() noexcept;
 
+	// Per-frame camera update (freecam/PC-orbit input + Bilbo freeze). Call this
+	// every frame from the render hook so it works even with the menu hidden.
+	void UpdateCamera() noexcept;
+
 	//functions
 	void SetTeleportPoint() noexcept;
 	void Teleport() noexcept;

@@ -130,6 +130,7 @@
     <ClInclude Include="minhook\trampoline.h" />
     <ClInclude Include="sdk\animation_sdk.h" />
     <ClInclude Include="sdk\bilbo_sdk.h" />
+    <ClInclude Include="sdk\camera_freecam.h" />
     <ClInclude Include="sdk\camera_sdk.h" />
     <ClInclude Include="sdk\chests_sdk.h" />
     <ClInclude Include="sdk\cinema_sdk.h" />

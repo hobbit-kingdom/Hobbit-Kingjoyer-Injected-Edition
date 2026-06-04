@@ -35,6 +35,9 @@
 #include "../sdk/custom_page.h"
 #include "../sdk/bilbo_sdk.h"
 #include "../sdk/npc_ai_sdk.h"
+#include "../sdk/camera_freecam.h"
+
+#include "../minhook/MinHook.h"
 
 #include <iostream>
 #include "string"
@@ -292,6 +295,136 @@ inline void EnsureMeterLoaded(int index)
 	*(unsigned*)((char*)hud + 0x380) |= (1u << index); // mark loaded
 }
 
+// ---- Camera control (camera_freecam.h) ----
+// Installs the per-frame SetupView hook once (idempotent). Safe to call from
+// any of the camera-mode buttons.
+static void InstallCameraHook()
+{
+	static bool installed = false;
+	if (installed) return;
+	installed = true;
+
+	MH_Initialize(); // no-op if another hook already initialized MinHook
+	MH_CreateHook((void*)hobbit_cam::addr::SetupView,
+		&hobbit_cam::SetupViewHook,
+		(void**)&hobbit_cam::Orig());
+	MH_EnableHook((void*)hobbit_cam::addr::SetupView);
+}
+
+// Mouse-look settings (drives Freecam + PC orbit rotation, hold Right Mouse).
+static bool  g_camMouseLook = true;
+static float g_camMouseSens = 0.003f; // radians per pixel
+
+// Snapshot of Bilbo's transform, used to pin him in place during Freecam so the
+// movement keys don't walk him away while we fly the detached camera.
+struct BilboFreeze {
+	bool  active = false;
+	float x = 0, y = 0, z = 0;
+	float rot = 0;
+};
+static BilboFreeze g_bilboFreeze;
+
+static void CaptureBilboFreeze()
+{
+	DWORD p = read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
+	if (!p) { g_bilboFreeze.active = false; return; }
+	g_bilboFreeze.x   = read_value_hobbit<float>((LPDWORD)p + 5);
+	g_bilboFreeze.y   = read_value_hobbit<float>((LPDWORD)p + 6);
+	g_bilboFreeze.z   = read_value_hobbit<float>((LPDWORD)p + 7);
+	g_bilboFreeze.rot = read_value_hobbit<float>((LPBYTE)p + 0x7AC);
+	g_bilboFreeze.active = true;
+}
+
+static void ApplyBilboFreeze()
+{
+	if (!g_bilboFreeze.active) return;
+	DWORD p = read_value_hobbit<DWORD>((LPVOID)0x0075BA3C);
+	if (!p) return;
+	// same fields the Teleport cheat writes -> pins his position
+	change_value_hobbit<float>((LPDWORD)p + 5,   g_bilboFreeze.x);
+	change_value_hobbit<float>((LPDWORD)p + 6,   g_bilboFreeze.y);
+	change_value_hobbit<float>((LPDWORD)p + 7,   g_bilboFreeze.z);
+	change_value_hobbit<float>((LPDWORD)p + 281, g_bilboFreeze.x);
+	change_value_hobbit<float>((LPDWORD)p + 282, g_bilboFreeze.y);
+	change_value_hobbit<float>((LPDWORD)p + 283, g_bilboFreeze.z);
+	change_value_hobbit<float>((LPBYTE)p + 0x7AC, g_bilboFreeze.rot);
+}
+
+// Hold the Right Mouse Button to look around (recenter-cursor style). Drives
+// Freecam and PC orbit, independently of keyboard / menu focus.
+static void UpdateCameraMouseLook()
+{
+	static bool  active = false;
+	static POINT anchor = {};
+
+	bool rmb = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+	if (!g_camMouseLook || !rmb || ImGui::GetIO().WantCaptureMouse) {
+		active = false;
+		return;
+	}
+
+	POINT cur;
+	GetCursorPos(&cur);
+	if (!active) {            // first frame: anchor the cursor, no delta yet
+		anchor = cur;
+		active = true;
+		return;
+	}
+
+	int dx = cur.x - anchor.x;
+	int dy = cur.y - anchor.y;
+	if (dx || dy) {
+		hobbit_cam::Look(-dx * g_camMouseSens, dy * g_camMouseSens); // -dx: mouse right -> look right
+		SetCursorPos(anchor.x, anchor.y); // keep the cursor pinned
+	}
+}
+
+// Per-frame camera update: Bilbo freeze (freecam), mouse-look, keyboard input.
+// Called every frame from Render() so flying keeps working with the menu closed.
+static void UpdateFreecamInput()
+{
+	const auto mode = hobbit_cam::Current();
+
+	// Pin Bilbo where he was when freecam started, so the movement keys don't
+	// walk him off. Captured on the first freecam frame, released on exit.
+	if (mode == hobbit_cam::CAM_FREE) {
+		if (!g_bilboFreeze.active) CaptureBilboFreeze();
+		ApplyBilboFreeze();
+	}
+	else {
+		g_bilboFreeze.active = false;
+	}
+
+	if (mode == hobbit_cam::CAM_OFF)
+		return;
+
+	UpdateCameraMouseLook();
+
+	if (ImGui::GetIO().WantCaptureKeyboard) // don't grab keys while typing in the menu
+		return;
+
+	auto down = [](int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; };
+
+	// freecam translation (units/frame)
+	if (down('W')) hobbit_cam::MoveFreecam(25, 0, 0);
+	if (down('S')) hobbit_cam::MoveFreecam(-25, 0, 0);
+	if (down('D')) hobbit_cam::MoveFreecam(0, -25, 0);
+	if (down('A')) hobbit_cam::MoveFreecam(0, 25, 0);
+	if (down('E')) hobbit_cam::MoveFreecam(0, 0, 25);
+	if (down('Q')) hobbit_cam::MoveFreecam(0, 0, -25);
+
+	// PC orbit zoom
+	if (down(VK_OEM_PLUS))  hobbit_cam::Zoom(-15);
+	if (down(VK_OEM_MINUS)) hobbit_cam::Zoom(15);
+}
+
+// Public entry: run the per-frame camera update from the main render hook so it
+// keeps working even while the ImGui menu is hidden (mirrors keybindings()).
+void gui::UpdateCamera() noexcept
+{
+	UpdateFreecamInput();
+}
+
 static void RenderSdkTesting()
 {
 	ensureConfigLoaded();
@@ -323,6 +456,53 @@ static void RenderSdkTesting()
 			}
 		}
 
+
+		// --- Camera control (camera_freecam.h): freecam / PC orbit ---
+		ImGui::Separator();
+		ImGui::Text(lang ? "Camera" : (const char*)u8"Камера");
+
+		const char* camModeName = "Off";
+		switch (hobbit_cam::Current()) {
+		case hobbit_cam::CAM_FREE: camModeName = "Freecam"; break;
+		case hobbit_cam::CAM_PC:   camModeName = "PC orbit"; break;
+		default: break;
+		}
+		ImGui::Text(lang ? "Mode: %s" : (const char*)u8"Режим: %s", camModeName);
+
+		if (ImGui::Button("Freecam")) {
+			InstallCameraHook();
+			hobbit_cam::Freecam();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(lang ? "PC orbit" : (const char*)u8"Орбита")) {
+			InstallCameraHook();
+			hobbit_cam::PCCamera();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button(lang ? "Camera Off" : (const char*)u8"Выкл камеру")) {
+			hobbit_cam::Off();
+		}
+
+		ImGui::Checkbox(lang ? "Mouse look (hold Right Mouse)" : (const char*)u8"Обзор мышью (зажми ПКМ)", &g_camMouseLook);
+		ImGui::SetNextItemWidth(150);
+		ImGui::SliderFloat("Mouse sensitivity##cam", &g_camMouseSens, 0.0005f, 0.02f, "%.4f");
+
+		static float camFocus = 0.0f;
+		ImGui::SetNextItemWidth(150);
+		// raise the PC-orbit centre off Bilbo's feet (e.g. to his torso/head)
+		if (ImGui::InputFloat("Orbit focus height##cam", &camFocus, 5.0f))
+			hobbit_cam::SetFocusHeight(camFocus);
+
+		static float camFovDeg = 70.0f;
+		ImGui::SetNextItemWidth(150);
+		ImGui::InputFloat("FOV deg (0 = off)##cam", &camFovDeg, 1.0f);
+		ImGui::SameLine();
+		if (ImGui::Button("Apply FOV##cam"))
+			hobbit_cam::SetFov(camFovDeg > 0.0f ? hobbit_cam::Deg(camFovDeg) : 0.0f);
+
+		ImGui::TextDisabled("Hold RMB: look  |  WASD/QE: move (freecam)  |  +/-: zoom (orbit)");
+
+		ImGui::Separator();
 
 		if (ImGui::Button(lang ? "init hook" : (const char*)u8"init hook"))
 		{
