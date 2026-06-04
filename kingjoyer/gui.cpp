@@ -138,7 +138,7 @@ DWORD ukazatel_chesttime;
 LPBYTE currentLevel = (LPBYTE)(GetModuleBaseAddress(GetProcessID(L"Meridian.exe"), L"Meridian.exe") + 0x362B5C);
 
 bool debug = false;
-int lang = 1; // 0 - RUS , 1 - ENG
+int lang = 0; // 0 - RUS , 1 - ENG
 
 Point currentBilboPos;
 
@@ -189,6 +189,11 @@ int ringBlue = 0x18;
 int ringGreen = 0x18;
 
 ImVec4 color = ImVec4(ringRed / 255.0f, ringGreen / 255.0f, ringBlue / 255.0f, 1.0f);
+
+
+static std::atomic<bool> g_modsActive(false);
+static std::atomic<bool> g_stopModThread(false);
+static std::thread g_modThread;
 
 
 // ===== Menu sections (one per collapsing header) =====
@@ -1246,7 +1251,7 @@ static void RenderRingSettings()
 	{
 		ImGui::Indent();
 		ImGui::SetNextItemWidth(300);
-		ImGui::ColorPicker4("Color Picker", (float*)&color, ImGuiColorEditFlags_PickerHueWheel);
+		ImGui::ColorEdit4("Color Picker", (float*)&color);
 
 
 		ringRed = static_cast<int>(round(color.x * 255));
@@ -1346,8 +1351,6 @@ static void RenderSkinchanger()
 	}
 }
 
-// Per-frame effects driven by the toggles above. Runs every frame regardless
-// of which header is open.
 static void ApplyPerFrameMods()
 {
 	if (randommod == true) {
@@ -1357,11 +1360,10 @@ static void ApplyPerFrameMods()
 		PickupAll();
 	}
 	if (cankillall == true or allAgress == true) {
-		//CanKillAll(cankillall, allAgress);
+		CanKillAll(cankillall, allAgress);
 	}
 	if (stamina == true)
 		change_value_hobbit<float>((LPDWORD)ukazatel_stamina + 641, 10);
-
 
 	if (lock_animation == true)
 	{
@@ -1369,11 +1371,48 @@ static void ApplyPerFrameMods()
 			change_value_hobbit<float>((LPDWORD)ukazatel_animation + 332, savedPoint.frame_animation);
 			timer_animation = 0.0;
 		}
-		else timer_animation += ImGui::GetIO().DeltaTime;
+		else timer_animation += 0.016f; // Используем фиксированную дельту вместо ImGui::GetIO().DeltaTime
 	}
 	if (stones == true)
 		change_value_hobbit<float>((LPVOID)0x0075BDB4, 10);
 }
+
+// Per-frame effects driven by the toggles above. Runs every frame regardless
+// of which header is open.
+static void ModWorkerThread()
+{
+	auto lastFrame = std::chrono::steady_clock::now();
+	const auto frameTime = std::chrono::milliseconds(16); // ~60 FPS
+
+	while (!g_stopModThread)
+	{
+		auto now = std::chrono::steady_clock::now();
+		if (now - lastFrame >= frameTime)
+		{
+			lastFrame = now;
+
+			// Выполняем моды, если они включены
+			if (g_modsActive)
+			{
+				ApplyPerFrameMods();
+			}
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+}
+
+// Функция для запуска/остановки потока
+static void EnsureModThreadRunning()
+{
+	static bool threadStarted = false;
+	if (!threadStarted)
+	{
+		threadStarted = true;
+		g_modThread = std::thread(ModWorkerThread);
+		g_modThread.detach();
+	}
+}
+
 
 static void RenderLinks()
 {
@@ -1432,6 +1471,14 @@ static void RenderMaterials()
 
 void gui::Render() noexcept
 {
+
+
+	EnsureModThreadRunning();
+
+	// Включаем выполнение модов (поток начнет их выполнять)
+	g_modsActive = true;
+
+
 	//ImGui::SetNextWindowPos({ 0, 0 });
 
 	ImGui::Begin(
