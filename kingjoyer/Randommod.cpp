@@ -1,6 +1,8 @@
 ﻿#include "gui.h"
 #include "byte_functions.h"
 #include "Randommod.h"
+#include "memsearch.h"
+
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
 #include "../imgui/imgui_impl_win32.h"
@@ -18,12 +20,12 @@ extern int lang;
 float timer2 = 0;
 std::random_device rd;
 std::mt19937 gen(rd());
-std::uniform_int_distribution<> distrib(0, 14);
+std::uniform_int_distribution<> distrib(0, 15);
 int random_number = distrib(gen);
 int a = 0;
 bool vkl = false;
 bool isRandomModEnabled = false; // Глобальный флаг включения Randommod
-
+bool hair = false;
 // Хранилище для текущего активного эффекта
 static std::string currentEffect = "None";
 static int currentEffectIndex = -1;
@@ -65,14 +67,15 @@ const char* effectNamesEN[] = {
     "First Person",
     "Second Person",
     "Big Bilbo",
-    "Small Bilbo"
+    "Small Bilbo",
+    "Raibow hair"
 };
 
 // Функция для получения текущего эффекта
 std::string GetCurrentRandomEffect()
 {
     extern int lang; // Объявляем внешнюю переменную lang из gui.cpp
-    if (currentEffectIndex >= 0 && currentEffectIndex <= 14) {
+    if (currentEffectIndex >= 0 && currentEffectIndex <= 15) {
        // if (lang == 0) // RUS
           //  return effectNamesRU[currentEffectIndex];
      //   else // ENG
@@ -90,6 +93,22 @@ void RandomMod(float vremaeffectof)
 {
     extern bool randommod; // Объявляем внешнюю переменную randommod из gui.cpp
     isRandomModEnabled = randommod; // Синхронизируем флаг
+    if (hair == true)
+    {
+        static void* pMaterial = memsearch("hair", sizeof("hair"));
+        if (pMaterial) {
+            change_value_hobbit<DWORD>(((char*)pMaterial) + 0x104, 0x01, 0x01);
+            char* _pTint = ((char*)pMaterial) + 0x11C;
+            float* pTint = (float*)_pTint;
+            float tint[4];
+
+            std::uniform_int_distribution<> distrib1(0, 255); 
+            pTint[0] = distrib1(gen); 
+            pTint[1] = distrib1(gen);  
+            pTint[2] = distrib1(gen);  
+            pTint[3] = distrib1(gen);
+        }
+    }
 
     if (!randommod) {
         timer2 = 0;
@@ -98,6 +117,7 @@ void RandomMod(float vremaeffectof)
 
     if (vkl == false or timer2 >= vremaeffectof)
     {
+        hair = false;
         // Сохраняем индекс текущего эффекта перед его сменой
         currentEffectIndex = random_number;
 
@@ -130,6 +150,7 @@ void RandomMod(float vremaeffectof)
         }
         else if (random_number == 13) change_value_hobbit<DWORD>((LPVOID)0x006E92E8, 0x3F8CCCCD, 0x3F800000); //большой Бильбо
         else if (random_number == 14) change_value_hobbit<DWORD>((LPVOID)0x006E92E8, 0x3F666666, 0x3F800000); //маленький Бильбо
+        else if (random_number == 15) hair = true;
 
         vkl = !vkl;
     }
