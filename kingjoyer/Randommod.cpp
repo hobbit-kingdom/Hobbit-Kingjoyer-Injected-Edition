@@ -68,7 +68,7 @@ const char* effectNamesEN[] = {
     "Second Person",
     "Big Bilbo",
     "Small Bilbo",
-    "Raibow hair"
+    "Raibow Hair"
 };
 
 // Функция для получения текущего эффекта
@@ -85,7 +85,7 @@ std::string GetCurrentRandomEffect()
 }
 
 bool IsRandomModActive()
-{
+{ 
     return isRandomModEnabled;
 }
 
@@ -95,7 +95,8 @@ void RandomMod(float vremaeffectof)
     isRandomModEnabled = randommod; // Синхронизируем флаг
     if (hair == true)
     {
-        static void* pMaterial = memsearch("hair", sizeof("hair"));
+        char mat_name[256] = "hair"; 
+        static void* pMaterial = memsearch(mat_name, sizeof(mat_name));
         if (pMaterial) {
             change_value_hobbit<DWORD>(((char*)pMaterial) + 0x104, 0x01, 0x01);
             char* _pTint = ((char*)pMaterial) + 0x11C;
