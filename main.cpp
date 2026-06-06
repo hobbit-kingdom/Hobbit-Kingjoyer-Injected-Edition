@@ -245,7 +245,7 @@ void DrawPressedKey()
 
 void DrawSettings()
 {
-	int posX = windowWidth - 100;
+	int posX = 100;//windowWidth - 100;
 	int posY = 200;
 
 	// Сначала отображаем все обычные настройки из map 'settings'
