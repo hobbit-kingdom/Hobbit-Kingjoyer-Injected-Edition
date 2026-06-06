@@ -1,3 +1,6 @@
 ﻿#pragma once
-void RandomMod(float vremaeffectof); 
+#include <string>
 
+void RandomMod(float vremaeffectof);
+std::string GetCurrentRandomEffect();
+bool IsRandomModActive();

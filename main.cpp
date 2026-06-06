@@ -2,6 +2,7 @@
 
 #include "includes.h"
 #include "kingjoyer/PathNavigator.h"
+#include "kingjoyer/Randommod.h"
 
 typedef long(__stdcall* EndScene)(LPDIRECT3DDEVICE9);
 static EndScene oEndScene = NULL;
@@ -204,7 +205,7 @@ void DrawCustomText(const char* text, int x, int y)
 		// Position at bottom-center
 		rect1.left = x - 100;  // Adjust for centering
 		rect1.top = y - 50;  // Adjust for bottom position
-		rect1.right = x + 100;
+		rect1.right = x + 200;
 		rect1.bottom = y - 20;
 
 		// Set color to white
@@ -245,13 +246,9 @@ void DrawPressedKey()
 void DrawSettings()
 {
 	int posX = windowWidth - 100;
-
 	int posY = 200;
 
-	DrawCustomText((std::to_string(posX)).c_str(), posX, posY);
-	posY += 32;
-	DrawCustomText((std::to_string(posY)).c_str(), posX, posY);
-	posY += 32;
+	// Сначала отображаем все обычные настройки из map 'settings'
 	for (auto setting : settings)
 	{
 		if (setting.second)
@@ -261,7 +258,14 @@ void DrawSettings()
 		}
 	}
 
-	return;
+	// Отображаем текущий эффект Randommod, если он включен
+	if (IsRandomModActive())
+	{
+		std::string randomEffect = "Random: " + GetCurrentRandomEffect();
+		DrawCustomText(randomEffect.c_str(), posX, posY);
+		posY += 32;
+
+	}
 }
 typedef HRESULT(APIENTRY* ResetFn)(LPDIRECT3DDEVICE9 pDevice, D3DPRESENT_PARAMETERS* pPresentationParameters);
 ResetFn reset_original = nullptr;

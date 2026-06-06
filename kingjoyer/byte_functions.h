@@ -15,6 +15,11 @@ HANDLE read_process_hobbit() noexcept;
 uintptr_t GetModuleBaseAddress(DWORD pid, const wchar_t* moduleName) noexcept;
 DWORD GetProcessID(const wchar_t* processName) noexcept;
 
+// Для использования в main.cpp
+std::string GetCurrentRandomEffect();
+bool IsRandomModActive();
+
+
 //template <typename T>
 //vector<uint32_t> findAllGameObjByPattern(T pattern, uint32_t shift) noexcept;
 //vector<uint8_t> readData(LPVOID address, size_t bytesSize) noexcept;

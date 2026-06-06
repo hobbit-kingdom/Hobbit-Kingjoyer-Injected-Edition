@@ -1320,6 +1320,9 @@ static void RenderComplicatedOptions()
 	if (ImGui::CollapsingHeader(lang ? "Complicated options" : (const char*)u8"Сложные опции"))
 	{
 		ImGui::Indent();
+
+
+
 		ImGui::Text(lang ? "Effect change time" : (const char*)u8"Время смены эффектов");
 		ImGui::PushItemWidth(300);
 		ImGui::InputFloat(" .", &vremaeffectof, 1);
