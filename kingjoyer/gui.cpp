@@ -648,6 +648,8 @@ static void RenderCheats()
 			//ukazatel_stamina = savedPoint.ukazatel_stamina; //функция беконечной стамины
 			change_value_hobbit<DWORD>((LPDWORD)0x0043D8E9, 0x90909090, 0x0A049E89);
 			change_value_hobbit<WORD>((LPDWORD)0x0043D8ED, 0x9090, 0x0000); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
+			change_value_hobbit<DWORD>((LPDWORD)0x0043E532, 0x90909090, 0x0A049E89);
+			change_value_hobbit<WORD>((LPDWORD)0x0043E536, 0x9090, 0x0000); //тут просто надо 6 байтов обнулять, по-этому тут 2 функции
 		}
 		if (ImGui::Checkbox(lang ? "Full chest time" : (const char*)u8"Бесконечный таймер сундука", &chesttimer)) {
 
@@ -1451,7 +1453,7 @@ static void RenderMaterials()
 		if (ImGui::Button("Search")) {
 			pMaterial = memsearch(g_matName, sizeof(g_matName));
 		}
-
+		
 		if (pMaterial) {
 			char* _pTint = ((char*)pMaterial) + 0x11C;
 			float* pTint = (float*)_pTint;
